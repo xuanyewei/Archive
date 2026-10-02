@@ -31,7 +31,7 @@
         }
 
         @media (prefers-color-scheme: dark) {
-            :root {
+            :root:not([data-theme="light"]) {
                 --bg: #000000;
                 --surface: #121212;
                 --text-main: #ffffff;
@@ -39,6 +39,14 @@
                 --pill-bg: #222222;
                 --border: #333333;
             }
+        }
+        [data-theme="dark"] {
+            --bg: #000000;
+            --surface: #121212;
+            --text-main: #ffffff;
+            --text-sub: #8d8d93;
+            --pill-bg: #222222;
+            --border: #333333;
         }
 
         * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
@@ -85,7 +93,13 @@
         .gallery-wrapper { padding: 0 16px; }
         .gallery-container { border-radius: var(--radius-md); overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.04); background: var(--surface); }
         .gallery { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2px; background: var(--bg); }
-        @media (min-width: 600px) { .gallery { grid-template-columns: repeat(5, 1fr); } }
+        [data-grid="2"] .gallery { grid-template-columns: repeat(2, 1fr); }
+        [data-grid="4"] .gallery { grid-template-columns: repeat(4, 1fr); }
+        @media (min-width: 600px) { 
+            .gallery { grid-template-columns: repeat(5, 1fr); } 
+            [data-grid="2"] .gallery { grid-template-columns: repeat(3, 1fr); }
+            [data-grid="4"] .gallery { grid-template-columns: repeat(6, 1fr); }
+        }
 
         .item { aspect-ratio: 1 / 1; background: var(--pill-bg); cursor: grab; overflow: hidden; position: relative; -webkit-touch-callout: none; user-select: none; }
         .item img { width: 100%; height: 100%; object-fit: cover; transition: 0.3s; pointer-events: none; }
@@ -125,8 +139,8 @@
         .v-desc { font-size: 16px; font-weight: 500; margin-bottom: 8px; }
         .v-meta { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 20px; }
         .v-tag { background: rgba(255,255,255,0.15); padding: 4px 10px; border-radius: 12px; font-size: 12px; color: #ccc; }
-        .v-actions { display: flex; justify-content: space-between; align-items: center; }
-        .v-actions-left { display: flex; gap: 16px; }
+        .v-actions { display: flex; align-items: center; gap: 20px; }
+.v-actions-left { display: flex; gap: 20px; flex: 1; }
         .v-action-btn { color: #fff; font-size: 14px; text-decoration: none; cursor: pointer; opacity: 0.8; }
         .v-action-btn.danger { color: #ff453a; }
 
@@ -420,6 +434,255 @@
         .set-action { font-size: 14px; font-weight: 600; color: var(--blue); cursor: pointer; padding: 4px 8px; background: rgba(0,122,255,0.1); border-radius: 6px; }
         .set-action.danger { color: var(--red); background: rgba(255,59,48,0.1); }
         .set-select { background: transparent; border: none; font-size: 14px; color: var(--blue); font-weight: 600; outline: none; text-align: right; direction: rtl; }
+        .storage-bar-bg { width: 100%; height: 6px; background: var(--border); border-radius: 3px; margin-top: 10px; overflow: hidden; }
+        .storage-bar-fill { height: 100%; background: var(--blue); border-radius: 3px; width: 0%; transition: 0.3s; }
+                /* --- 搭卡实验室 (WeChat UI) --- */
+        #view-match { padding-top: 0; background: var(--surface); min-height: 100vh; }
+        .wx-cover-slot { position: relative; width: 100%; aspect-ratio: 1 / 1; background: #e5e5ea; cursor: pointer; display: flex; justify-content: center; align-items: center; color: #8a8a8e; font-size: 14px; margin-top: -20px; /* 抵消 body 的 padding */ }
+        .wx-cover-slot img { width: 100%; height: 100%; object-fit: cover; display: none; position: absolute; inset: 0; }
+        .wx-cover-slot::after { content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 80px; background: linear-gradient(to bottom, rgba(0,0,0,0) 0%, rgba(0,0,0,0.3) 100%); pointer-events: none; z-index: 1; }
+        
+        .wx-user-info { position: absolute; right: 16px; bottom: -22px; display: flex; align-items: flex-start; gap: 16px; z-index: 10; }
+        .wx-name { color: #ffffff; font-size: 20px; font-weight: 600; text-shadow: 0 1px 2px rgba(0,0,0,0.3); margin-top: 14px; cursor: text; outline: none; }
+        .wx-avatar-slot { width: 72px; height: 72px; border-radius: 8px; background: #f4f4f6; cursor: pointer; overflow: hidden; display: flex; justify-content: center; align-items: center; color: #ccc; font-size: 24px; box-shadow: 0 1px 4px rgba(0,0,0,0.1); position: relative; }
+        .wx-avatar-slot img { width: 100%; height: 100%; object-fit: cover; display: none; position: absolute; inset: 0; z-index: 2; }
+        
+        .wx-signature { text-align: right; padding: 36px 16px 24px; font-size: 13px; color: var(--text-sub); cursor: text; outline: none; }
+        .wx-feed { padding: 0 16px 100px; }
+        .wx-feed-row { display: flex; align-items: flex-start; padding: 20px 0; border-bottom: 0.5px solid var(--border); gap: 16px; }
+        .wx-feed-row:last-child { border-bottom: none; }
+        .wx-feed-label { width: 48px; font-size: 16px; font-weight: 600; color: var(--text-main); flex-shrink: 0; padding-top: 4px; }
+        
+        .wx-pinned-images { display: flex; gap: 6px; flex: 1; flex-wrap: wrap; }
+        .wx-post-img-slot { width: 72px; height: 72px; background: var(--pill-bg); display: flex; justify-content: center; align-items: center; color: #ccc; cursor: pointer; font-size: 20px; overflow: hidden; position: relative; }
+        .wx-post-img-slot img { width: 100%; height: 100%; object-fit: cover; display: none; position: absolute; inset: 0; }
+        .wx-arrow { color: #c7c7cc; font-size: 16px; font-family: monospace; padding-top: 30px; margin-left: auto; }
+        .wx-camera-icon { width: 72px; height: 72px; background: var(--pill-bg); display: flex; justify-content: center; align-items: center; }
+        .wx-camera-icon svg { width: 28px; height: 28px; fill: #c7c7cc; }
+
+        /* 搭卡选图弹窗 */
+        .match-picker-modal { position: fixed; inset: 0; background: var(--surface); z-index: 600; display: flex; flex-direction: column; transform: translateY(100%); transition: 0.3s cubic-bezier(0.32, 0.72, 0, 1); }
+        .match-picker-modal.active { transform: translateY(0); }
+        .mp-header { padding: 16px 20px; display: flex; justify-content: space-between; border-bottom: 1px solid var(--border); }
+        .mp-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2px; overflow-y: auto; padding-bottom: 40px; }
+        @media (min-width: 600px) { .mp-grid { grid-template-columns: repeat(5, 1fr); } }
+        .mp-item { aspect-ratio: 1/1; cursor: pointer; }
+        .mp-item img { width: 100%; height: 100%; object-fit: cover; display: block; }
+        
+                /* 沉浸式模式隐藏底部导航栏 */
+        body.immersive-match .bottom-nav { transform: translate(-50%, 150%); opacity: 0; pointer-events: none; }
+        
+        /* 搭卡左上角返回按钮 */
+        .match-back {
+            position: absolute; top: 16px; left: 16px; width: 32px; height: 32px;
+            background: rgba(0,0,0,0.25); border-radius: 16px;
+            display: flex; justify-content: center; align-items: center;
+            z-index: 50; cursor: pointer; backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+            transition: 0.2s;
+        }
+        .match-back:active { transform: scale(0.9); background: rgba(0,0,0,0.4); }
+        .match-back svg { width: 20px; height: 20px; fill: none; stroke: #fff; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; margin-right: 2px; }
+        
+                /* 1. 彻底锁定搭卡页面，禁止上下滑动 */
+        body.immersive-match { overflow: hidden; position: fixed; inset: 0; width: 100%; }
+        #view-match { height: 100vh; overflow: hidden; }
+
+        /* 2. 搭卡右上角操作栏 (保存/库/下载) */
+        .match-actions { position: absolute; top: 16px; right: 16px; display: flex; gap: 12px; z-index: 50; }
+        .match-btn { width: 32px; height: 32px; background: rgba(0,0,0,0.25); border-radius: 16px; display: flex; justify-content: center; align-items: center; cursor: pointer; backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); transition: 0.2s; color: #fff; }
+        .match-btn:active { transform: scale(0.9); background: rgba(0,0,0,0.4); }
+        .match-btn svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+
+        /* 3. 搭配库弹窗样式 */
+        .combo-modal { position: fixed; inset: 0; background: var(--surface); z-index: 600; display: flex; flex-direction: column; transform: translateY(100%); transition: 0.3s cubic-bezier(0.32, 0.72, 0, 1); }
+        .combo-modal.active { transform: translateY(0); }
+        .combo-list { padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 16px; }
+        .combo-item { border: 1px solid var(--border); border-radius: 12px; padding: 12px; display: flex; justify-content: space-between; align-items: center; background: var(--bg); cursor: pointer; }
+        .combo-preview { display: flex; gap: 8px; }
+        .combo-preview img { width: 40px; height: 40px; border-radius: 6px; object-fit: cover; background: var(--pill-bg); }
+        .combo-info { flex: 1; margin-left: 12px; }
+        .combo-name { font-size: 15px; font-weight: 600; color: var(--text-main); }
+        .combo-del { color: var(--red); font-size: 13px; font-weight: 600; padding: 6px; }
+    
+            /* --- 1. Ins风黑白弹窗 (替代系统 alert/confirm/prompt) --- */
+        .ins-dialog-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 9999; display: flex; justify-content: center; align-items: center; opacity: 0; pointer-events: none; transition: 0.2s; backdrop-filter: blur(5px); -webkit-backdrop-filter: blur(5px); }
+        .ins-dialog-overlay.active { opacity: 1; pointer-events: auto; }
+        .ins-dialog { background: #fff; width: 280px; border-radius: 16px; display: flex; flex-direction: column; overflow: hidden; text-align: center; transform: scale(0.95); transition: 0.2s; box-shadow: 0 20px 40px rgba(0,0,0,0.2); }
+        .ins-dialog-overlay.active .ins-dialog { transform: scale(1); }
+        .ins-dialog-msg { padding: 32px 20px; font-size: 15px; color: #000; font-weight: 600; line-height: 1.5; }
+        .ins-dialog-input { margin: 0 20px 20px; padding: 12px; border: 1px solid #e5e5ea; background: #fafafa; border-radius: 8px; font-size: 14px; outline: none; text-align: center; color: #000; font-family: var(--font-ui); }
+        .ins-dialog-btns { display: flex; border-top: 1px solid #e5e5ea; }
+        .ins-dialog-btn { flex: 1; padding: 16px 0; font-size: 15px; font-weight: 600; background: transparent; border: none; cursor: pointer; color: #000; font-family: var(--font-ui); outline: none; }
+        .ins-dialog-btn:active { background: #f4f4f6; }
+        .ins-dialog-btn.cancel { border-right: 1px solid #e5e5ea; font-weight: 400; color: #888; }
+        .ins-dialog-btn.danger { color: #ff3b30; }
+
+        /* --- 2. 图片裁剪调整台 (大小和位置) --- */
+        .crop-modal { position: fixed; inset: 0; background: #000; z-index: 800; display: flex; flex-direction: column; opacity: 0; pointer-events: none; transition: 0.3s; }
+        .crop-modal.active { opacity: 1; pointer-events: auto; }
+        .crop-header { display: flex; justify-content: space-between; padding: 20px; color: #fff; font-weight: 600; font-size: 16px; z-index: 10; }
+        .crop-header span { cursor: pointer; padding: 4px 8px; }
+        .crop-area-wrapper { flex: 1; display: flex; justify-content: center; align-items: center; padding: 20px; overflow: hidden; }
+        .crop-box { width: 100%; max-width: 360px; aspect-ratio: 1/1; position: relative; overflow: hidden; border: 1px solid rgba(255,255,255,0.2); box-shadow: 0 0 0 9999px rgba(0,0,0,0.6); }
+        .crop-box img { position: absolute; transform-origin: top left; pointer-events: none; }
+        .crop-controls { padding: 30px 40px 60px; display: flex; align-items: center; gap: 16px; color: #fff; }
+        .crop-slider { flex: 1; accent-color: #fff; height: 2px; background: #333; outline: none; -webkit-appearance: none; border-radius: 2px; }
+        .crop-slider::-webkit-slider-thumb { -webkit-appearance: none; width: 20px; height: 20px; background: #fff; border-radius: 50%; cursor: pointer; }
+        
+                /* 搭卡槽位：支持手势拖动调整 */
+        .wx-cover-slot, .wx-avatar-slot, .wx-post-img-slot, .qq-cover-slot, .qq-avatar-slot, .ne-cover-slot, .ne-avatar-slot { touch-action: none; -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
+        .wx-name, .wx-signature, .qq-name-input, .qq-id-input, .qq-like-input, .qq-sign-input, .qq-status-input, .ne-name-input, .ne-stats-input { touch-action: auto; }
+        .wx-cover-slot img, .wx-avatar-slot img, .wx-post-img-slot img, .qq-cover-slot img, .qq-avatar-slot img, .ne-cover-slot img, .ne-avatar-slot img { transform-origin: center center; will-change: transform; pointer-events: none; }
+        /* 拖动中的轻微提示 */
+        .wx-cover-slot.adjusting, .wx-avatar-slot.adjusting, .wx-post-img-slot.adjusting {
+            outline: 2px solid rgba(255,255,255,0.6); outline-offset: -2px;
+        }
+        
+                /* 底部操作菜单 (Action Sheet) */
+        .action-sheet-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 9000; opacity: 0; pointer-events: none; transition: 0.2s; backdrop-filter: blur(5px); -webkit-backdrop-filter: blur(5px); }
+        .action-sheet-overlay.active { opacity: 1; pointer-events: auto; }
+        .action-sheet { position: absolute; bottom: 0; left: 0; right: 0; padding: 20px 20px 40px; background: transparent; transform: translateY(100%); transition: 0.3s cubic-bezier(0.32, 0.72, 0, 1); display: flex; flex-direction: column; gap: 8px; }
+        .action-sheet-overlay.active .action-sheet { transform: translateY(0); }
+        .as-btn { background: var(--surface); color: var(--blue); font-size: 17px; font-weight: 600; padding: 16px; border-radius: 14px; text-align: center; cursor: pointer; user-select: none; }
+        .as-btn:active { background: var(--pill-bg); }
+        .as-btn.danger { color: var(--red); }
+        .as-btn.cancel { font-weight: 600; color: var(--text-main); }
+        .as-group { background: var(--surface); border-radius: 14px; overflow: hidden; }
+        .as-group .as-btn { border-radius: 0; border-bottom: 1px solid var(--border); }
+        .as-group .as-btn:last-child { border-bottom: none; }
+        
+                /* --- 搭卡：双平台滑动容器 --- */
+        .match-slider-container { display: flex; width: 300vw; height: 100vh; transition: transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1); }
+        .match-screen { width: 100vw; height: 100vh; flex-shrink: 0; position: relative; overflow: hidden; background: var(--bg); }
+        body.immersive-match[data-platform="qq"] .match-slider-container { transform: translateX(-100vw); }
+        body.immersive-match[data-platform="qq"] .match-slider-container { transform: translateX(-100vw); }
+        body.immersive-match[data-platform="netease"] .match-slider-container { transform: translateX(-200vw); }
+
+        /* 平台切换指示器 (小圆点) */
+        .match-dots { position: absolute; bottom: 40px; left: 0; right: 0; display: flex; justify-content: center; gap: 8px; z-index: 50; }
+        .match-dot { width: 6px; height: 6px; border-radius: 3px; background: rgba(0,0,0,0.2); transition: 0.2s; }
+        body[data-platform="wx"] .match-dot.wx { background: rgba(0,0,0,0.6); width: 12px; }
+        body[data-platform="qq"] .match-dot.qq { background: rgba(0,0,0,0.6); width: 12px; }
+                body[data-platform="netease"] .match-dot.netease { background: rgba(0,0,0,0.6); width: 12px; }
+
+        /* --- 搭卡：QQ 资料卡 UI --- */
+        .qq-cover-slot { position: relative; width: 100%; aspect-ratio: 4/3; background: #e5e5ea; cursor: pointer; display: flex; justify-content: center; align-items: center; color: #8a8a8e; font-size: 14px; overflow: hidden; }
+        .qq-cover-slot img { width: 100%; height: 100%; object-fit: cover; display: none; position: absolute; inset: 0; }
+        .qq-cover-slot::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 80px; background: linear-gradient(to top, rgba(0,0,0,0) 0%, rgba(0,0,0,0.3) 100%); pointer-events: none; z-index: 1; }
+        
+        .qq-top-nav { position: absolute; top: 16px; left: 16px; right: 16px; display: flex; justify-content: space-between; align-items: center; z-index: 2; color: #ffffff; pointer-events: none; }
+        .qq-top-nav svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; filter: drop-shadow(0 1px 2px rgba(0,0,0,0.3)); }
+        .qq-top-right { display: flex; gap: 20px; }
+        
+        .qq-card { position: relative; background: var(--surface); border-radius: 20px 20px 0 0; margin-top: -30px; padding: 0 20px 30px; z-index: 10; height: calc(100vh - 75vw + 30px); }
+        .qq-header-row { display: flex; align-items: flex-end; padding-bottom: 24px; }
+        
+        .qq-avatar-slot { width: 84px; height: 84px; border-radius: 50%; background: #f4f4f6; border: 3px solid var(--surface); margin-top: -24px; flex-shrink: 0; cursor: pointer; overflow: hidden; display: flex; justify-content: center; align-items: center; color: #ccc; font-size: 24px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); position: relative; }
+        .qq-avatar-slot img { width: 100%; height: 100%; object-fit: cover; display: none; position: absolute; inset: 0; z-index: 2; }
+        
+        .qq-info-col { flex: 1; margin-left: 16px; margin-bottom: 4px; }
+        .qq-name-row { display: flex; align-items: center; gap: 6px; margin-bottom: 6px; }
+        .qq-name { font-size: 22px; font-weight: 700; color: var(--text-main); cursor: text; outline: none; }
+        .qq-signal-icon { width: 16px; height: 16px; background: #8a8a8e; border-radius: 4px; display: flex; align-items: flex-end; justify-content: space-evenly; padding: 3px 2px; }
+        .qq-signal-icon span { width: 2px; background: #fff; border-radius: 1px; }
+        .qq-signal-icon span:nth-child(1) { height: 40%; }
+        .qq-signal-icon span:nth-child(2) { height: 70%; }
+        .qq-signal-icon span:nth-child(3) { height: 100%; }
+        
+        .qq-num-row { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text-sub); }
+        .qq-id-badge { background: var(--pill-bg); color: var(--text-sub); padding: 1px 6px; border-radius: 10px; font-size: 10px; font-weight: 600; transform: scale(0.9); transform-origin: left center; }
+        
+        .qq-like-col { display: flex; flex-direction: column; align-items: center; color: var(--text-main); margin-bottom: 4px; }
+        .qq-like-col svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 1.8; margin-bottom: 4px; }
+        .qq-like-col span { font-size: 11px; font-weight: 500; outline: none; }
+        
+        .qq-list-item { display: flex; justify-content: space-between; align-items: center; padding: 16px 0; border-top: 0.5px solid var(--border); }
+        .qq-sign { font-size: 14px; color: var(--text-sub); display: flex; align-items: center; gap: 6px; cursor: text; outline: none; }
+        .qq-sign-icon { color: #007aff; font-weight: bold; font-size: 16px; }
+        .qq-status { font-size: 15px; color: var(--text-main); cursor: text; outline: none; }
+        .qq-arrow { color: #c7c7cc; font-size: 16px; font-family: monospace; }
+        
+        /* QQ 删除键特殊位置 */
+        .qq-cover-slot > .slot-del { bottom: 36px; left: 12px; width: 28px; height: 28px; border-radius: 14px; }
+        
+                /* --- 搭卡：网易云音乐 UI --- */
+        .ne-cover-slot { position: relative; width: 100%; height: 100vh; background: #e5e5ea; cursor: pointer; display: flex; justify-content: center; align-items: center; color: #8a8a8e; font-size: 14px; overflow: hidden; }
+        .ne-cover-slot img { width: 100%; height: 100%; object-fit: cover; display: none; position: absolute; inset: 0; z-index: 0; }
+        .ne-cover-slot::after { content: ''; position: absolute; inset: 0; background: linear-gradient(to bottom, rgba(0,0,0,0.1) 0%, rgba(0,0,0,0) 30%, rgba(0,0,0,0.7) 100%); pointer-events: none; z-index: 1; }
+        
+        .ne-top-nav { position: absolute; top: 70px; left: 16px; right: 16px; display: flex; justify-content: space-between; align-items: center; z-index: 10; color: #fff; pointer-events: none; }
+        .ne-nav-left { display: flex; position: relative; }
+        .ne-nav-left svg { width: 24px; height: 24px; fill: none; stroke: #fff; stroke-width: 2; }
+        .ne-badge { position: absolute; top: -4px; right: -6px; background: #ff3b30; color: #fff; font-size: 10px; font-weight: bold; width: 16px; height: 16px; border-radius: 8px; display: flex; justify-content: center; align-items: center; border: 1px solid #fff; }
+        .ne-nav-right { display: flex; align-items: center; gap: 16px; }
+        .ne-nav-right svg { width: 22px; height: 22px; fill: none; stroke: #fff; stroke-width: 2; }
+        .ne-status-btn { font-size: 13px; font-weight: 500; background: rgba(255,255,255,0.2); padding: 4px 10px; border-radius: 12px; backdrop-filter: blur(5px); }
+        
+        .ne-overlay-content { 
+    position: absolute; 
+    top: 50%; left: 0; right: 0; 
+    transform: translateY(-55%); /* 垂直居中，并稍微上提一点点 */
+    display: flex; flex-direction: column; align-items: center; 
+    z-index: 10; padding: 0 20px; pointer-events: none; 
+}
+        .ne-avatar-slot { width: 90px; height: 90px; border-radius: 50%; background: #f4f4f6; border: 2px solid rgba(255,255,255,0.8); cursor: pointer; overflow: hidden; display: flex; justify-content: center; align-items: center; color: #ccc; font-size: 24px; position: relative; margin-bottom: 16px; pointer-events: auto; }
+        .ne-avatar-slot img { width: 100%; height: 100%; object-fit: cover; display: none; position: absolute; inset: 0; z-index: 2; }
+        
+        .ne-name-row { display: flex; align-items: center; gap: 8px; margin-bottom: 16px; pointer-events: auto; }
+        .ne-name-input { font-size: 20px; font-weight: 600; color: #fff; text-shadow: 0 1px 4px rgba(0,0,0,0.5); outline: none; cursor: text; }
+        .ne-vip-badge { background: rgba(255,255,255,0.2); color: #fff; font-size: 10px; padding: 2px 6px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.4); backdrop-filter: blur(4px); font-weight: 600; }
+        
+        .ne-stats-row { margin-bottom: 30px; pointer-events: auto; }
+        .ne-stats-input { font-size: 13px; color: rgba(255,255,255,0.9); text-shadow: 0 1px 2px rgba(0,0,0,0.5); outline: none; cursor: text; font-weight: 500; letter-spacing: 1px; }
+        
+        .ne-bottom-bar { display: flex; gap: 10px; width: 100%; justify-content: space-between; }
+        .ne-btn { flex: 1; background: rgba(255,255,255,0.2); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border-radius: 12px; padding: 12px 0; display: flex; justify-content: center; align-items: center; gap: 6px; color: #fff; font-size: 13px; font-weight: 600; }
+        .ne-btn.icon-only { flex: 0 0 44px; }
+        .ne-btn svg { width: 16px; height: 16px; fill: none; stroke: #fff; stroke-width: 2; }
+        
+        .ne-cover-slot > .slot-del { bottom: auto; top: 80px; left: 16px; width: 28px; height: 28px; border-radius: 14px; z-index: 20; }
+        
+                /* --- 色彩档案 (Color Palette) --- */
+        /* 1. 查看大图时的色卡 */
+.v-color-dot {
+    width: 22px; height: 22px; border-radius: 50%;
+    border: 2px solid rgba(255,255,255,0.8);
+    box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+    flex-shrink: 0;
+    cursor: pointer;
+    transition: 0.2s;
+}
+        .v-color-dot:active { transform: scale(0.9); }
+
+        /* 2. 侧边栏的色彩筛选器 */
+        .color-filter-grid {
+            display: flex; flex-wrap: wrap; gap: 10px;
+        }
+        .color-chip {
+            width: 32px; height: 32px; border-radius: 8px;
+            cursor: pointer; position: relative;
+            border: 1px solid rgba(0,0,0,0.05);
+            transition: 0.2s;
+        }
+        .color-chip:active { transform: scale(0.92); }
+        .color-chip.active {
+            box-shadow: 0 0 0 2px var(--surface), 0 0 0 4px var(--text-main);
+        }
+        .color-chip .count {
+            position: absolute; bottom: -2px; right: -2px;
+            background: var(--surface); color: var(--text-main);
+            font-size: 9px; font-weight: 700;
+            min-width: 14px; height: 14px; border-radius: 7px;
+            display: flex; justify-content: center; align-items: center;
+            border: 1px solid var(--border);
+        }
+        
+        /* 3. 图库网格里的颜色条 (可选，很好看) */
+        .item .color-bar {
+            position: absolute; bottom: 0; left: 0; right: 0;
+            height: 3px; opacity: 0; transition: 0.3s;
+        }
+        [data-show-color="true"] .item .color-bar { opacity: 1; }
     </style>
 </head>
 <body>
@@ -437,7 +700,13 @@
         <div class="s-section-title">Search Tags</div>
         <input id="tag-search-input" type="text" placeholder="# Search tags..." style="width:100%;background:var(--bg);border:none;padding:10px 14px;border-radius:10px;font-size:14px;color:var(--text-main);outline:none;margin-bottom:12px;" oninput="filterSidebarTags(this.value)">
         <div class="s-tags" id="sidebar-tags"></div>
+                <!-- 色彩档案 -->
+        <div style="margin-top: 24px;">
+            <div class="s-section-title">Color Palette</div>
+            <div class="color-filter-grid" id="color-filter-grid"></div>
+        </div>
                 <div style="margin-top: 30px; border-top: 1px solid var(--border); padding-top: 20px;">
+            <div class="s-tag" style="width: 100%; text-align: center; background: var(--bg); border: 1px solid var(--border); display: block; margin-bottom: 12px; font-weight: 600;" onclick="openMatchView()">搭卡</div>
             <div class="s-tag" style="width: 100%; text-align: center; background: var(--text-main); color: var(--bg); display: block;" onclick="openSettings()">⚙ 设置 & 数据管理</div>
         </div>
     </div>
@@ -517,6 +786,184 @@
     <div class="journal-list" id="journal-list"></div>
 </div>
 
+<!-- 视图 4：搭卡实验室 -->
+<div id="view-match" class="view-section">
+    <!-- 返回按钮 -->
+    <div class="match-back" onclick="closeMatchView()">
+        <svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg>
+    </div>
+
+    <!-- 搭卡操作栏 -->
+    <div class="match-actions">
+        <div class="match-btn" onclick="saveComboPreset()" title="保存当前搭配"><svg viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg></div>
+        <div class="match-btn" onclick="openComboModal()" title="我的搭配库"><svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"/></svg></div>
+        <div class="match-btn" onclick="downloadAllMatchImages()" title="一键下载全套"><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></div>
+    </div>
+
+    <!-- 滑动切换指示器 -->
+    <div class="match-dots">
+        <div class="match-dot wx"></div>
+        <div class="match-dot qq"></div>
+        <div class="match-dot netease"></div>
+    </div>
+
+    <!-- 滑动容器 (包含微信和QQ两屏) -->
+    <div class="match-slider-container" id="match-slider">
+        
+        <!-- 第一屏：微信朋友圈 -->
+        <div class="match-screen" id="match-screen-wx">
+            <div style="position: relative; margin-top: -20px;">
+                <div class="wx-cover-slot" style="margin-top: 0; overflow: hidden;">
+                    <span>+ 背景图</span>
+                    <img id="wx-cover-img" src="">
+                </div>
+                <div class="wx-user-info">
+                    <div class="wx-name" contenteditable="true" spellcheck="false" onclick="event.stopPropagation()">参天</div>
+                    <div class="wx-avatar-slot">
+                        +
+                        <img id="wx-avatar-img" src="">
+                    </div>
+                </div>
+            </div>
+            <div class="wx-signature" contenteditable="true" spellcheck="false">江海 湖泊 那是你的心归之处</div>
+            <div class="wx-feed">
+                <div class="wx-feed-row">
+                    <div class="wx-feed-label">置顶</div>
+                    <div class="wx-pinned-images">
+                        <div class="wx-post-img-slot">+<img id="wx-pin-1" src=""></div>
+                        <div class="wx-post-img-slot">+<img id="wx-pin-2" src=""></div>
+                    </div>
+                    <div class="wx-arrow">&gt;</div>
+                </div>
+                <div class="wx-feed-row">
+                    <div class="wx-feed-label">今天</div>
+                    <div class="wx-camera-icon">
+                        <svg viewBox="0 0 24 24"><circle cx="12" cy="13" r="3.2"/><path d="M4 8h3l1.5-2h7L17 8h3a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V10a2 2 0 0 1 2-2z"/></svg>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 第二屏：QQ资料卡 -->
+        <div class="match-screen" id="match-screen-qq">
+            <div class="qq-cover-slot">
+                <div class="qq-top-nav">
+                    <svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg>
+                    <div class="qq-top-right">
+                        <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/></svg>
+                        <svg viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+                        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+                    </div>
+                </div>
+                <span>+ 背景图</span>
+                <img id="qq-cover-img" src="">
+            </div>
+            <div class="qq-card">
+                <div class="qq-header-row">
+                    <div class="qq-avatar-slot">
+                        +
+                        <img id="qq-avatar-img" src="">
+                    </div>
+                    <div class="qq-info-col">
+                        <div class="qq-name-row">
+                            <span class="qq-name qq-name-input" contenteditable="true" spellcheck="false" onclick="event.stopPropagation()">Archiver</span>
+                            <div class="qq-signal-icon"><span></span><span></span><span></span></div>
+                        </div>
+                        <div class="qq-num-row">
+                            <span class="qq-id-input" contenteditable="true" spellcheck="false" onclick="event.stopPropagation()">QQ: 88888888</span>
+                            <span class="qq-id-badge">ID &gt;</span>
+                        </div>
+                    </div>
+                    <div class="qq-like-col">
+                        <svg viewBox="0 0 24 24"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"/></svg>
+                        <span class="qq-like-input" contenteditable="true" spellcheck="false" onclick="event.stopPropagation()">999</span>
+                    </div>
+                </div>
+                <div class="qq-list-item">
+                    <div class="qq-sign qq-sign-input" contenteditable="true" spellcheck="false">
+                        <span class="qq-sign-icon">♂</span> | 这个人什么都没写
+                    </div>
+                    <div class="qq-arrow">&gt;</div>
+                </div>
+                <div class="qq-list-item">
+                    <div class="qq-status qq-status-input" contenteditable="true" spellcheck="false">全速等待</div>
+                    <div class="qq-arrow">&gt;</div>
+                </div>
+            </div>
+        </div>
+        <!-- 第三屏：网易云音乐 -->
+        <div class="match-screen" id="match-screen-netease">
+            <div class="ne-cover-slot">
+                <div class="ne-top-nav">
+                    <div class="ne-nav-left">
+                        <svg viewBox="0 0 24 24"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+                        <span class="ne-badge">1</span>
+                    </div>
+                    <div class="ne-nav-right">
+                        <span class="ne-status-btn">添加状态</span>
+                        <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                        <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                        <svg viewBox="0 0 24 24" style="fill:#fff; stroke:none;"><circle cx="12" cy="5" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="12" cy="19" r="2"/></svg>
+                    </div>
+                </div>
+                <span>+ 背景图</span>
+                <img id="ne-cover-img" src="">
+                <div class="ne-overlay-content">
+                    <div class="ne-avatar-slot">
+                        +
+                        <img id="ne-avatar-img" src="">
+                    </div>
+                    <div class="ne-name-row">
+                        <span class="ne-name-input" contenteditable="true" spellcheck="false" onclick="event.stopPropagation()">大爱无疆</span>
+                        <span class="ne-vip-badge">VIP ¥7.9开通 &gt;</span>
+                    </div>
+                    <div class="ne-stats-row">
+                        <span class="ne-stats-input" contenteditable="true" spellcheck="false" onclick="event.stopPropagation()">8 关注 &nbsp; 8 粉丝 &nbsp; Lv.6 &nbsp; 442 小时</span>
+                    </div>
+                    <div class="ne-bottom-bar">
+                        <div class="ne-btn"><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>本地</div>
+                        <div class="ne-btn"><svg viewBox="0 0 24 24"><path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/><polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/></svg>网盘</div>
+                        <div class="ne-btn"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>歌词</div>
+                        <div class="ne-btn"><svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>收藏</div>
+                        <div class="ne-btn icon-only"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 搭卡专属的选图弹窗 -->
+<div class="match-picker-modal" id="match-picker-modal">
+    <div class="mp-header">
+        <div style="font-weight:700; font-size:18px;">选择图片</div>
+        <div style="color:var(--blue); font-weight:600; cursor:pointer;" onclick="closeMatchPicker()">取消</div>
+    </div>
+    <!-- 新增：筛选栏 -->
+    <div class="mp-filters" style="display: flex; gap: 10px; padding: 10px 20px; border-bottom: 1px solid var(--border); background: var(--surface);">
+        <select id="mp-col-filter" onchange="renderMatchPickerGrid()" style="flex: 1; padding: 8px 12px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg); font-size: 14px; color: var(--text-main); outline: none;"></select>
+        <select id="mp-tag-filter" onchange="renderMatchPickerGrid()" style="flex: 1; padding: 8px 12px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg); font-size: 14px; color: var(--text-main); outline: none;"></select>
+    </div>
+    <div class="mp-grid" id="match-picker-grid"></div>
+</div>
+
+<!-- 搭配库弹窗 -->
+<div class="combo-modal" id="combo-modal">
+    <div class="mp-header" style="flex-direction: column; gap: 12px;">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div style="font-weight:700; font-size:18px;">我的搭配库</div>
+            <div style="color:var(--blue); font-weight:600; cursor:pointer;" onclick="closeComboModal()">关闭</div>
+        </div>
+        <!-- 微信/QQ/网易云 分组 Tab -->
+        <div style="display: flex; gap: 16px; font-size: 14px; font-weight: 600; color: var(--text-sub);">
+            <div id="tab-combo-wx" style="cursor:pointer; padding-bottom:4px;" onclick="renderComboList('wx')">微信</div>
+            <div id="tab-combo-qq" style="cursor:pointer; padding-bottom:4px;" onclick="renderComboList('qq')">QQ</div>
+            <div id="tab-combo-netease" style="cursor:pointer; padding-bottom:4px;" onclick="renderComboList('netease')">网易云</div>
+        </div>
+    </div>
+    <div class="combo-list" id="combo-list"></div>
+</div>
+
 <!-- 底部导航栏 -->
 <div class="bottom-nav">
     <div class="nav-item active" id="tab-gallery" onclick="switchView('gallery')">Gallery</div>
@@ -576,6 +1023,7 @@
                 <a id="v-download" class="v-action-btn" download="image.jpg">Save</a>
             </div>
             <span class="v-action-btn danger" onclick="deleteImage()">Delete</span>
+            <div class="v-color-dot" id="v-color-dot" title="按主色调筛选" onclick="filterByColorFromViewer()"></div>
         </div>
     </div>
 </div>
@@ -691,6 +1139,48 @@
         <div class="set-close" onclick="closeSettings()">完成</div>
     </div>
     <div class="set-content">
+            <!-- 存储空间 -->
+        <div class="set-group">
+            <div class="set-group-title">存储空间 (Storage)</div>
+            <div class="set-card" style="padding: 16px;">
+                <div style="display:flex; justify-content:space-between; font-size:13px; font-weight:600; margin-bottom:4px;">
+                    <span id="storage-usage-text">计算中...</span>
+                </div>
+                <div class="storage-bar-bg"><div class="storage-bar-fill" id="storage-usage-bar"></div></div>
+                <div class="set-sub" style="margin-top:10px;">所有照片和文字均安全存储在你的设备本地。</div>
+            </div>
+        </div>
+
+        <!-- 基础偏好设置 -->
+        <div class="set-group">
+            <div class="set-group-title">偏好设置 (Preferences)</div>
+            <div class="set-card">
+                <div class="set-item">
+                    <div class="set-label">外观主题</div>
+                    <select class="set-select" id="set-theme" onchange="changeAppTheme(this.value)">
+                        <option value="auto">跟随系统</option>
+                        <option value="light">浅色模式</option>
+                        <option value="dark">深色模式</option>
+                    </select>
+                </div>
+                <div class="set-item">
+                    <div class="set-label">图库网格大小</div>
+                    <select class="set-select" id="set-grid" onchange="changeAppGrid(this.value)">
+                        <option value="2">宽大 (2列)</option>
+                        <option value="3" selected>默认 (3列)</option>
+                        <option value="4">紧凑 (4列)</option>
+                    </select>
+                </div>
+                <div class="set-item">
+                    <div class="set-label">默认启动页</div>
+                    <select class="set-select" id="set-start" onchange="changeStartPage(this.value)">
+                        <option value="gallery">图库 Gallery</option>
+                        <option value="timeline">时间轴 Timeline</option>
+                        <option value="journal">日记 Journal</option>
+                    </select>
+                </div>
+            </div>
+        </div>  
         <!-- 多图库管理 -->
         <div class="set-group">
             <div class="set-group-title">多图库管理 (Libraries)</div>
@@ -771,6 +1261,28 @@
     </div>
 </div>
 
+<!-- Ins风黑白弹窗 -->
+<div class="ins-dialog-overlay" id="ins-dialog-overlay">
+    <div class="ins-dialog">
+        <div class="ins-dialog-msg" id="ins-dialog-msg"></div>
+        <input type="text" class="ins-dialog-input" id="ins-dialog-input" autocomplete="off">
+        <div class="ins-dialog-btns">
+            <button class="ins-dialog-btn cancel" id="ins-dialog-cancel">取消</button>
+            <button class="ins-dialog-btn" id="ins-dialog-confirm">确定</button>
+        </div>
+    </div>
+</div>
+
+<!-- 底部操作菜单 -->
+<div class="action-sheet-overlay" id="action-sheet-overlay" onclick="closeActionSheet()">
+    <div class="action-sheet">
+        <div class="as-group">
+            <div class="as-btn" id="as-save-btn">保存到相册</div>
+            <div class="as-btn danger" id="as-clear-btn">清空这张图</div>
+        </div>
+        <div class="as-btn cancel">取消</div>
+    </div>
+</div>
 <script>
     // --- IndexedDB ---
     let currentLibrary = localStorage.getItem('current_library') || 'ArchiveDB';
@@ -940,6 +1452,14 @@
 
     // 页面加载
     window.onload = async () => {
+        // 读取并应用基础设置
+        const theme = localStorage.getItem('app_theme') || 'auto';
+        if(theme !== 'auto') document.documentElement.setAttribute('data-theme', theme);
+        const grid = localStorage.getItem('app_grid') || '3';
+        document.documentElement.setAttribute('data-grid', grid);
+        const startPage = localStorage.getItem('start_page') || 'gallery';
+        if(startPage !== 'gallery') switchView(startPage);
+
         await initDB();
         await migrateOldData();
         await loadData();
@@ -948,9 +1468,9 @@
     function switchView(mode) {
         currentMode = mode;
         if (selectMode && mode !== 'gallery') toggleSelectMode(false);
-        ['gallery', 'timeline', 'journal'].forEach(m => {
-            document.getElementById(`view-${m}`).classList.remove('active');
-            document.getElementById(`tab-${m}`).classList.remove('active');
+        ['gallery', 'timeline', 'match', 'journal'].forEach(m => {
+            if(document.getElementById(`view-${m}`)) document.getElementById(`view-${m}`).classList.remove('active');
+            if(document.getElementById(`tab-${m}`)) document.getElementById(`tab-${m}`).classList.remove('active');
         });
         document.getElementById(`view-${mode}`).classList.add('active');
         document.getElementById(`tab-${mode}`).classList.add('active');
@@ -991,6 +1511,9 @@
         renderGallery();
         renderJournal();
         renderTimeline();
+        applyMatchState();
+        migrateColors();
+        recomputeAllColors();
     }
 
     // ==========================================
@@ -1517,14 +2040,16 @@
     // ==========================================
 
     function getVisibleImages() {
+        if (activeColor) return allImages.filter(img => catOf(img) === activeColor);
         if (activeTag) return allImages.filter(img => img.tags && img.tags.includes(activeTag));
         return activeCollection === 'All' ? allImages : allImages.filter(img => img.collections.includes(activeCollection));
     }
 
     function updateGalleryTitle() {
+        const colorName = activeColor ? (COLOR_CATEGORIES.find(c => c.key === activeColor)?.name || '') : '';
         document.getElementById('page-title').innerText =
-            activeTag ? '#' + activeTag : (activeCollection === 'All' ? 'Gallery' : activeCollection);
-        const showColActions = (activeCollection !== 'All' && !activeTag);
+            activeColor ? `${colorName}色系` : (activeTag ? '#' + activeTag : (activeCollection === 'All' ? 'Gallery' : activeCollection));
+        const showColActions = (activeCollection !== 'All' && !activeTag && !activeColor);
         document.getElementById('btn-del-collection').style.display = showColActions ? '' : 'none';
         document.getElementById('btn-rename-collection').style.display = showColActions ? '' : 'none';
     }
@@ -1684,7 +2209,7 @@
             pill.className = `pill ${c === activeCollection && !activeTag ? 'active' : ''}`;
             pill.innerText = c;
             pill.onclick = () => {
-                activeCollection = c; activeTag = null;
+                activeCollection = c; activeTag = null; activeColor = null;
                 selectedIds.clear(); lastSelIdx = -1;
                 updateGalleryTitle();
                 renderGalleryTabs();
@@ -1801,7 +2326,10 @@
         tagsDiv.innerHTML = '';
         if (img.tags && img.tags.length > 0) img.tags.forEach(t => tagsDiv.innerHTML += `<span class="v-tag">#${escapeHtml(t)}</span>`);
         document.getElementById('v-download').href = img.dataUrl;
-
+        const dot = document.getElementById('v-color-dot');
+        if (img.color) { dot.style.background = img.color; dot.style.display = 'block'; }
+        else { dot.style.display = 'none'; }
+        
         const boundArea = document.getElementById('v-bound');
         const boundThumb = document.getElementById('v-bound-thumb');
         if (img.boundId) {
@@ -2140,9 +2668,10 @@
             const tags = (meta && meta.tags.length) ? meta.tags : def.tags;
             const desc = (meta && meta.desc) ? meta.desc : defDesc;
             const thumb = fileQueueThumbs[i] || await generateThumbnail(b64);
+            const cr = await extractDominantColor(b64); // 提取主色调
             return dbOp(STORE_MEDIA, 'readwrite', s => s.put({
                 id: (baseTime + n).toString(), dataUrl: b64, thumbDataUrl: thumb,
-                desc, collections: cols, tags,
+                desc, collections: cols, tags, color, // <-- 这里加上 color
                 time: baseTime + n, order: baseTime + n, boundId: null
             }));
         });
@@ -2155,7 +2684,7 @@
     function toggleSidebar(show) {
         document.getElementById('sidebar').classList.toggle('active', show);
         document.getElementById('s-overlay').classList.toggle('active', show);
-        if (show) renderSidebarTags();
+        if (show) { renderSidebarTags(); renderColorFilters(); }
     }
 
     function renderSidebarTags() {
@@ -2297,10 +2826,49 @@
             : '<option value="">无合集</option>';
         loadGhConfig();
         document.getElementById('settings-modal').classList.add('active');
+                document.getElementById('set-theme').value = localStorage.getItem('app_theme') || 'auto';
+        document.getElementById('set-grid').value = localStorage.getItem('app_grid') || '3';
+        document.getElementById('set-start').value = localStorage.getItem('start_page') || 'gallery';
+        updateStorageUsage();
     }
 
     function closeSettings() {
         document.getElementById('settings-modal').classList.remove('active');
+    }
+    
+        // 偏好设置修改逻辑
+    function changeAppTheme(val) {
+        localStorage.setItem('app_theme', val);
+        if(val === 'auto') document.documentElement.removeAttribute('data-theme');
+        else document.documentElement.setAttribute('data-theme', val);
+    }
+    function changeAppGrid(val) {
+        localStorage.setItem('app_grid', val);
+        document.documentElement.setAttribute('data-grid', val);
+    }
+    function changeStartPage(val) {
+        localStorage.setItem('start_page', val);
+    }
+
+    // 计算本地存储容量
+    async function updateStorageUsage() {
+        const textEl = document.getElementById('storage-usage-text');
+        const barEl = document.getElementById('storage-usage-bar');
+        if (navigator.storage && navigator.storage.estimate) {
+            try {
+                const estimate = await navigator.storage.estimate();
+                const usedMB = (estimate.usage / (1024 * 1024)).toFixed(1);
+                const totalMB = (estimate.quota / (1024 * 1024)).toFixed(1);
+                textEl.innerText = `已用 ${usedMB} MB / 总共可用 ${totalMB} MB`;
+                const percent = Math.min(100, (estimate.usage / estimate.quota) * 100);
+                barEl.style.width = percent + '%';
+            } catch(e) {
+                textEl.innerText = '无法计算存储用量';
+            }
+        } else {
+            textEl.innerText = '当前浏览器不支持查询存储用量';
+            barEl.style.width = '0%';
+        }
     }
 
     // 切换图库
@@ -2341,83 +2909,91 @@
         await switchLibrary(libraryList[0]);
     }
 
-    // 导出数据
-    async function exportData(mode) {
-        let exportImages = [];
-        let exportJournals = [];
-        let filename = '';
+// 导出数据 (包含图片、文字、搭配库)
+async function exportData(mode) {
+    let exportImages = [];
+    let exportJournals = [];
+    let filename = '';
 
-        if (mode === 'all') {
-            exportImages = allImages;
-            exportJournals = allJournals;
-            filename = `ArchiveBackup_${currentLibrary}_${new Date().toLocaleDateString().replace(/\//g, '')}.json`;
-        } else if (mode === 'collection') {
-            const colName = document.getElementById('export-col-select').value;
-            if (!colName) return alert('当前没有合集可导出');
-            exportImages = allImages.filter(img => img.collections.includes(colName));
-            // 合集导出不包含文字
-            filename = `Collection_${colName}_${new Date().toLocaleDateString().replace(/\//g, '')}.json`;
-        }
-
-        const data = {
-            library: currentLibrary,
-            exportMode: mode,
-            timestamp: Date.now(),
-            media: exportImages,
-            journal: exportJournals
-        };
-
-        const blob = new Blob([JSON.stringify(data)], { type: 'application/json' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = filename;
-        a.click();
-        URL.revokeObjectURL(url);
+    if (mode === 'all') {
+        exportImages = allImages;
+        exportJournals = allJournals;
+        filename = `ArchiveBackup_${currentLibrary}_${new Date().toLocaleDateString().replace(/\//g, '')}.json`;
+    } else if (mode === 'collection') {
+        const colName = document.getElementById('export-col-select').value;
+        if (!colName) return alert('当前没有合集可导出');
+        exportImages = allImages.filter(img => img.collections.includes(colName));
+        filename = `Collection_${colName}_${new Date().toLocaleDateString().replace(/\//g, '')}.json`;
     }
 
-    // 导入数据
-    function importData(event) {
-        const file = event.target.files[0];
-        if (!file) return;
-        
-        const reader = new FileReader();
-        reader.onload = async (e) => {
-            try {
-                const data = JSON.parse(e.target.result);
-                if (!data.media && !data.journal) throw new Error('无效的备份文件');
+    // 获取本地存的搭配库数据
+    const combosData = JSON.parse(localStorage.getItem('wx_combos_v2') || '[]');
 
-                const msg = `准备导入：\n${data.media?.length || 0} 张照片\n${data.journal?.length || 0} 篇文字\n\n将合并到当前图库「${currentLibrary}」中，遇到相同 ID 会覆盖。确定继续吗？`;
-                if (!confirm(msg)) {
-                    event.target.value = '';
-                    return;
-                }
+    const data = {
+        library: currentLibrary,
+        exportMode: mode,
+        timestamp: Date.now(),
+        media: exportImages,
+        journal: exportJournals,
+        combos: combosData  // <- 这里把搭配库一起打包
+    };
 
-                // 批量合并
-                await bulkTx(s => {
-                    if (data.media) data.media.forEach(img => s.put(img));
-                });
-                
-                // 文字用另一个单独事务
-                const txJ = db.transaction([STORE_JOURNAL], 'readwrite');
-                const storeJ = txJ.objectStore(STORE_JOURNAL);
-                if (data.journal) data.journal.forEach(j => storeJ.put(j));
-                
-                txJ.oncomplete = async () => {
-                    alert('导入成功！');
-                    event.target.value = '';
-                    await loadData();
-                    closeSettings();
-                };
+    const blob = new Blob([JSON.stringify(data)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(url);
+}
 
-            } catch (err) {
-                alert('导入失败：文件格式损坏或不是 Archive 的备份文件。');
-                console.error(err);
+// 导入数据 (包含图片、文字、搭配库)
+function importData(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+        try {
+            const data = JSON.parse(e.target.result);
+            if (!data.media && !data.journal) throw new Error('无效的备份文件');
+
+            const msg = `准备导入：\n${data.media?.length || 0} 张照片\n${data.journal?.length || 0} 篇文字\n${data.combos?.length || 0} 套搭配\n\n将合并到当前图库「${currentLibrary}」中，遇到相同 ID 会覆盖。确定继续吗？`;
+            if (!confirm(msg)) {
+                event.target.value = '';
+                return;
             }
-            event.target.value = '';
-        };
-        reader.readAsText(file);
-    }
+
+            // 批量合并图片
+            await bulkTx(s => {
+                if (data.media) data.media.forEach(img => s.put(img));
+            });
+            
+            // 批量合并文字
+            const txJ = db.transaction([STORE_JOURNAL], 'readwrite');
+            const storeJ = txJ.objectStore(STORE_JOURNAL);
+            if (data.journal) data.journal.forEach(j => storeJ.put(j));
+            
+            // 恢复搭配库
+            if (data.combos && data.combos.length > 0) {
+                localStorage.setItem('wx_combos_v2', JSON.stringify(data.combos));
+            }
+
+            txJ.oncomplete = async () => {
+                alert('导入成功！');
+                event.target.value = '';
+                await loadData();
+                closeSettings();
+            };
+
+        } catch (err) {
+            alert('导入失败：文件格式损坏或不是 Archive 的备份文件。');
+            console.error(err);
+        }
+        event.target.value = '';
+    };
+    reader.readAsText(file);
+}
         // 注册 Service Worker，让 App 可以离线运行
     if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
@@ -2460,113 +3036,953 @@
         return await res.json();
     }
 
-    // 上传到 GitHub
-    async function syncToGitHub(e) {
-        const user = localStorage.getItem('gh_user');
-        const repo = localStorage.getItem('gh_repo');
-        const token = localStorage.getItem('gh_token');
-        if (!user || !repo || !token) return alert('请先填写并保存 GitHub 配置');
+// 上传到 GitHub (包含图片、文字、搭配库)
+async function syncToGitHub(e) {
+    const user = localStorage.getItem('gh_user');
+    const repo = localStorage.getItem('gh_repo');
+    const token = localStorage.getItem('gh_token');
+    if (!user || !repo || !token) return alert('请先填写并保存 GitHub 配置');
 
-        const btn = e.target;
-        btn.innerText = '上传中...';
-        btn.style.pointerEvents = 'none';
+    const btn = e.target;
+    btn.innerText = '上传中...';
+    btn.style.pointerEvents = 'none';
 
-        try {
-            const path = `backup_${currentLibrary}.json`;
-            const data = { library: currentLibrary, timestamp: Date.now(), media: allImages, journal: allJournals };
-            const contentB64 = encodeBase64(JSON.stringify(data));
+    try {
+        const path = `backup_${currentLibrary}.json`;
+        const combosData = JSON.parse(localStorage.getItem('wx_combos_v2') || '[]');
+        
+        const data = { 
+            library: currentLibrary, 
+            timestamp: Date.now(), 
+            media: allImages, 
+            journal: allJournals,
+            combos: combosData // <- 把搭配库一起传上云端
+        };
+        const contentB64 = encodeBase64(JSON.stringify(data));
 
-            const fileInfo = await getGhFileInfo(user, repo, token, path);
-            const body = {
-                message: `Auto Backup: ${currentLibrary} at ${new Date().toLocaleString()}`,
-                content: contentB64
+        const fileInfo = await getGhFileInfo(user, repo, token, path);
+        const body = {
+            message: `Auto Backup: ${currentLibrary} at ${new Date().toLocaleString()}`,
+            content: contentB64
+        };
+        if (fileInfo) body.sha = fileInfo.sha;
+
+        const res = await fetch(`https://api.github.com/repos/${user}/${repo}/contents/${path}`, {
+            method: 'PUT',
+            headers: { 'Authorization': `token ${token}`, 'Accept': 'application/vnd.github.v3+json', 'Content-Type': 'application/json' },
+            body: JSON.stringify(body)
+        });
+
+        if (!res.ok) {
+            const errJson = await res.json();
+            throw new Error(errJson.message || '上传失败');
+        }
+
+        const timeStr = new Date().toLocaleString();
+        localStorage.setItem(`gh_sync_${currentLibrary}`, timeStr);
+        document.getElementById('gh-last-sync').innerText = timeStr;
+        alert('🎉 备份成功！数据已安全存入你的私人仓库。');
+    } catch (err) {
+        console.error(err);
+        alert('上传失败，请检查配置。\n报错信息：' + err.message);
+    } finally {
+        btn.innerText = '上传';
+        btn.style.pointerEvents = 'auto';
+    }
+}
+
+// 从 GitHub 下载恢复 (无视文件大小限制，包含搭配库)
+async function syncFromGitHub(e) {
+    const user = localStorage.getItem('gh_user');
+    const repo = localStorage.getItem('gh_repo');
+    const token = localStorage.getItem('gh_token');
+    if (!user || !repo || !token) return alert('请先填写并保存 GitHub 配置');
+
+    if (!confirm(`警告：此操作将用云端数据完全覆盖当前手机上的「${currentLibrary}」数据，确定要恢复吗？`)) return;
+
+    const btn = e.target;
+    btn.innerText = '下载中...';
+    btn.style.pointerEvents = 'none';
+
+    try {
+        const path = `backup_${currentLibrary}.json`;
+        
+        const res = await fetch(`https://api.github.com/repos/${user}/${repo}/contents/${path}`, {
+            headers: {
+                'Authorization': `token ${token}`,
+                'Accept': 'application/vnd.github.v3.raw' 
+            },
+            cache: 'no-store'
+        });
+
+        if (!res.ok) {
+            if (res.status === 404) throw new Error('云端找不到这个图库的备份文件');
+            throw new Error(`下载失败，状态码: ${res.status}`);
+        }
+
+        const data = await res.json();
+
+        // 清空本地当前图库
+        await bulkTx(s => s.clear());
+        const txJClear = db.transaction([STORE_JOURNAL], 'readwrite');
+        txJClear.objectStore(STORE_JOURNAL).clear();
+        await new Promise(r => txJClear.oncomplete = r);
+
+        // 写入云端图片
+        if (data.media && data.media.length > 0) {
+            await bulkTx(s => data.media.forEach(img => s.put(img)));
+        }
+        // 写入云端文字
+        if (data.journal && data.journal.length > 0) {
+            const txJ = db.transaction([STORE_JOURNAL], 'readwrite');
+            const storeJ = txJ.objectStore(STORE_JOURNAL);
+            data.journal.forEach(j => storeJ.put(j));
+            await new Promise(r => txJ.oncomplete = r);
+        }
+        // 恢复云端搭配库
+        if (data.combos && data.combos.length > 0) {
+            localStorage.setItem('wx_combos_v2', JSON.stringify(data.combos));
+        }
+
+        alert('✅ 从云端恢复成功！');
+        await loadData();
+        closeSettings();
+    } catch (err) {
+        console.error(err);
+        alert('恢复失败：\n' + err.message);
+    } finally {
+        btn.innerText = '下载';
+        btn.style.pointerEvents = 'auto';
+    }
+}
+    
+            // ==========================================
+    // 搭卡实验室 逻辑
+    // ==========================================
+    let currentMatchTargetId = null;
+
+    function openMatchPicker(targetId, event) {
+        if (event) event.stopPropagation(); // 防止点头像时触发背景图的点击
+        if (matchGestureBlock) return; // 刚刚在拖动或长按，不弹出选图框
+        currentMatchTargetId = targetId;
+        
+        // 1. 动态生成合集下拉菜单
+        const colSelect = document.getElementById('mp-col-filter');
+        colSelect.innerHTML = '<option value="All">全部合集</option>' + 
+            Array.from(existingCollections).sort().map(c => `<option value="${c}">${c}</option>`).join('');
+            
+        // 2. 动态生成标签下拉菜单
+        const tagSelect = document.getElementById('mp-tag-filter');
+        tagSelect.innerHTML = '<option value="">全部标签</option>' + 
+            Array.from(existingTags).sort().map(t => `<option value="${t}">#${t}</option>`).join('');
+
+        // 3. 重置筛选项，并渲染网格
+        colSelect.value = 'All';
+        tagSelect.value = '';
+        renderMatchPickerGrid();
+        
+        document.getElementById('match-picker-modal').classList.add('active');
+    }
+
+    // 独立出来的渲染网格函数（筛选时会触发）
+    function renderMatchPickerGrid() {
+        const grid = document.getElementById('match-picker-grid');
+        grid.innerHTML = '';
+        
+        const selCol = document.getElementById('mp-col-filter').value;
+        const selTag = document.getElementById('mp-tag-filter').value;
+        
+        // 过滤逻辑：同时满足选中的合集和标签
+        let filtered = allImages;
+        if (selCol !== 'All') filtered = filtered.filter(img => img.collections.includes(selCol));
+        if (selTag !== '') filtered = filtered.filter(img => img.tags && img.tags.includes(selTag));
+        
+        // 如果筛选后没有图片
+        if (filtered.length === 0) {
+            grid.innerHTML = '<div style="grid-column: 1/-1; text-align: center; padding: 40px 20px; color: var(--text-sub); font-size: 14px;">没有符合的图片</div>';
+            return;
+        }
+
+        // 渲染过滤后的图片
+        filtered.forEach(img => {
+            const div = document.createElement('div');
+            div.className = 'mp-item';
+            div.innerHTML = `<img src="${img.thumbDataUrl || img.dataUrl}" loading="lazy">`;
+            div.onclick = () => {
+                const key = slotKeyByImgId(currentMatchTargetId);
+                closeMatchPicker();
+                if (!key) return;
+                // 只记录图片 id，位置和缩放从默认开始，之后可以直接拖
+                matchState.slots[key] = { id: img.id, s: 1, x: 0, y: 0 };
+                applySlot(key);
+                saveMatchState();
             };
-            if (fileInfo) body.sha = fileInfo.sha;
+            grid.appendChild(div);
+        });
+    }
 
-            const res = await fetch(`https://api.github.com/repos/${user}/${repo}/contents/${path}`, {
-                method: 'PUT',
-                headers: { 'Authorization': `token ${token}`, 'Accept': 'application/vnd.github.v3+json', 'Content-Type': 'application/json' },
-                body: JSON.stringify(body)
-            });
+    function closeMatchPicker() {
+        document.getElementById('match-picker-modal').classList.remove('active');
+        currentMatchTargetId = null;
+    }
 
-            if (!res.ok) {
-                const errJson = await res.json();
-                throw new Error(errJson.message || '上传失败');
+    // ==========================================
+    // 搭卡：槽位状态与三平台引擎
+    // ==========================================
+    const MATCH_SLOTS = [
+        { key: 'cover',  imgId: 'wx-cover-img',  name: '微信背景' },
+        { key: 'avatar', imgId: 'wx-avatar-img', name: '微信头像' },
+        { key: 'pin1',   imgId: 'wx-pin-1',      name: '置顶1' },
+        { key: 'pin2',   imgId: 'wx-pin-2',      name: '置顶2' },
+        { key: 'qq_cover',  imgId: 'qq-cover-img',  name: 'QQ背景' },
+        { key: 'qq_avatar', imgId: 'qq-avatar-img', name: 'QQ头像' },
+        { key: 'ne_cover',  imgId: 'ne-cover-img',  name: '网易云背景' },
+        { key: 'ne_avatar', imgId: 'ne-avatar-img', name: '网易云头像' }
+    ];
+
+    let matchState = { slots: {}, name: '', sign: '', qqName: '', qqId: '', qqLike: '', qqSign: '', qqStatus: '', neName: '', neStats: '' };
+    let matchGestureBlock = false; 
+
+    function slotKeyByImgId(imgId) {
+        const s = MATCH_SLOTS.find(s => s.imgId === imgId);
+        return s ? s.key : null;
+    }
+
+    function clampSlot(st) {
+        const max = Math.max(0, (st.s - 1) / 2 * 100);
+        st.x = Math.max(-max, Math.min(max, st.x));
+        st.y = Math.max(-max, Math.min(max, st.y));
+    }
+
+    function applySlot(key) {
+        const slot = MATCH_SLOTS.find(s => s.key === key);
+        if (!slot) return;
+        const el = document.getElementById(slot.imgId);
+        const box = el.parentElement;
+        const st = matchState.slots[key];
+
+        const clear = () => {
+            el.src = ''; el.style.display = 'none'; el.style.transform = '';
+            box.classList.remove('has-img');
+        };
+        if (!st) return clear();
+
+        const img = allImages.find(i => i.id === st.id);
+        if (!img) { delete matchState.slots[key]; return clear(); } 
+
+        el.src = img.dataUrl;
+        el.style.display = 'block';
+        el.style.transform = `translate(${st.x}%, ${st.y}%) scale(${st.s})`;
+        box.classList.add('has-img');
+    }
+
+    function applyMatchState() {
+        MATCH_SLOTS.forEach(s => applySlot(s.key));
+        
+        const safeSet = (sel, val, isHtml=false) => {
+            const el = document.querySelector(sel);
+            if (val && el && document.activeElement !== el) {
+                if (isHtml) el.innerHTML = val; else el.innerText = val;
             }
+        };
 
-            const timeStr = new Date().toLocaleString();
-            localStorage.setItem(`gh_sync_${currentLibrary}`, timeStr);
-            document.getElementById('gh-last-sync').innerText = timeStr;
-            alert('🎉 备份成功！数据已安全存入你的私人仓库。');
-        } catch (err) {
-            console.error(err);
-            alert('上传失败，请检查配置。\n报错信息：' + err.message);
-        } finally {
-            btn.innerText = '上传';
-            btn.style.pointerEvents = 'auto';
+        safeSet('.wx-name', matchState.name);
+        safeSet('.wx-signature', matchState.sign);
+        safeSet('.qq-name-input', matchState.qqName);
+        safeSet('.qq-id-input', matchState.qqId);
+        safeSet('.qq-like-input', matchState.qqLike);
+        safeSet('.qq-sign-input', matchState.qqSign, true);
+        safeSet('.qq-status-input', matchState.qqStatus);
+        safeSet('.ne-name-input', matchState.neName);
+        safeSet('.ne-stats-input', matchState.neStats);
+    }
+
+    function saveMatchState() {
+        matchState.name = document.querySelector('.wx-name').innerText;
+        matchState.sign = document.querySelector('.wx-signature').innerText;
+        matchState.qqName = document.querySelector('.qq-name-input').innerText;
+        matchState.qqId = document.querySelector('.qq-id-input').innerText;
+        matchState.qqLike = document.querySelector('.qq-like-input').innerText;
+        matchState.qqSign = document.querySelector('.qq-sign-input').innerHTML;
+        matchState.qqStatus = document.querySelector('.qq-status-input').innerText;
+        matchState.neName = document.querySelector('.ne-name-input').innerText;
+        matchState.neStats = document.querySelector('.ne-stats-input').innerText;
+        try { localStorage.setItem('wx_match_v2', JSON.stringify(matchState)); } catch (e) {}
+    }
+
+    function loadMatchState() {
+        try {
+            const s = JSON.parse(localStorage.getItem('wx_match_v2'));
+            if (s && s.slots) matchState = s;
+        } catch (e) {}
+    }
+    loadMatchState();
+
+    ['.wx-name', '.wx-signature', '.qq-name-input', '.qq-id-input', '.qq-like-input', '.qq-sign-input', '.qq-status-input', '.ne-name-input', '.ne-stats-input'].forEach(sel => {
+        const el = document.querySelector(sel);
+        if(el) el.addEventListener('input', saveMatchState);
+    });
+
+    const mDist = (a, b) => Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY);
+
+    function blockMatchClick() {
+        matchGestureBlock = true;
+        setTimeout(() => { matchGestureBlock = false; }, 400);
+    }
+
+    function clearSlot(key) {
+        delete matchState.slots[key];
+        applySlot(key);
+        saveMatchState();
+    }
+
+    let currentActionSlotKey = null;
+    function openActionSheet(key, name) {
+        currentActionSlotKey = key;
+        document.getElementById('as-save-btn').innerText = `保存${name}到相册`;
+        document.getElementById('action-sheet-overlay').classList.add('active');
+    }
+    function closeActionSheet() {
+        document.getElementById('action-sheet-overlay').classList.remove('active');
+        currentActionSlotKey = null;
+    }
+    
+    document.getElementById('as-save-btn').onclick = (e) => {
+        e.stopPropagation();
+        if (currentActionSlotKey) downloadSlot(currentActionSlotKey);
+        closeActionSheet();
+    };
+    document.getElementById('as-clear-btn').onclick = (e) => {
+        e.stopPropagation();
+        if (currentActionSlotKey) clearSlot(currentActionSlotKey);
+        closeActionSheet();
+    };
+
+    function initSlotGestures() {
+        MATCH_SLOTS.forEach(slot => {
+            const el = document.getElementById(slot.imgId);
+            if (!el) return;
+            const box = el.parentElement;
+
+            let mode = null, moved = false, timer = null;
+            let sx = 0, sy = 0, ox = 0, oy = 0, sd = 0, os = 1;
+
+            box.addEventListener('touchstart', e => {
+                e.stopPropagation(); 
+                const st = matchState.slots[slot.key];
+                if (!st) return;     
+                moved = false;
+
+                if (e.touches.length === 1) {
+                    mode = 'pan';
+                    sx = e.touches[0].clientX; sy = e.touches[0].clientY;
+                    ox = st.x; oy = st.y;
+                    timer = setTimeout(() => {   
+                        mode = null;
+                        blockMatchClick();
+                        if (navigator.vibrate) navigator.vibrate(15);
+                        openActionSheet(slot.key, slot.name);
+                    }, 500);
+                } else if (e.touches.length === 2) {
+                    clearTimeout(timer);
+                    mode = 'zoom';
+                    sd = mDist(e.touches[0], e.touches[1]);
+                    os = st.s;
+                }
+            }, { passive: false });
+
+            box.addEventListener('touchmove', e => {
+                e.stopPropagation();
+                const st = matchState.slots[slot.key];
+                if (!st || !mode) return;
+
+                if (mode === 'pan' && e.touches.length === 1) {
+                    const dx = e.touches[0].clientX - sx;
+                    const dy = e.touches[0].clientY - sy;
+                    if (!moved && Math.hypot(dx, dy) < 5) return;
+                    e.preventDefault();
+                    if (!moved) { moved = true; clearTimeout(timer); box.classList.add('adjusting'); }
+                    st.x = ox + dx / box.clientWidth * 100;
+                    st.y = oy + dy / box.clientHeight * 100;
+                    clampSlot(st);
+                    applySlot(slot.key);
+                } else if (mode === 'zoom' && e.touches.length === 2) {
+                    e.preventDefault();
+                    moved = true;
+                    box.classList.add('adjusting');
+                    const ratio = mDist(e.touches[0], e.touches[1]) / sd;
+                    st.s = Math.max(1, Math.min(4, os * ratio));
+                    clampSlot(st);
+                    applySlot(slot.key);
+                }
+            }, { passive: false });
+
+            const end = () => {
+                clearTimeout(timer);
+                box.classList.remove('adjusting');
+                if (moved) { blockMatchClick(); saveMatchState(); }
+                mode = null;
+            };
+            box.addEventListener('touchend', end);
+            box.addEventListener('touchcancel', end);
+
+            let lastTap = 0, tapTimer = null;
+            box.addEventListener('click', e => {
+                e.stopPropagation();
+                if (matchGestureBlock) return;
+                const st = matchState.slots[slot.key];
+                if (!st) { openMatchPicker(slot.imgId); return; }
+
+                const now = Date.now();
+                if (now - lastTap < 280) {
+                    clearTimeout(tapTimer);
+                    lastTap = 0;
+                    st.s = 1; st.x = 0; st.y = 0;
+                    applySlot(slot.key);
+                    saveMatchState();
+                    return;
+                }
+                lastTap = now;
+                tapTimer = setTimeout(() => openMatchPicker(slot.imgId), 280);
+            });
+        });
+    }
+    window.addEventListener('load', initSlotGestures);
+
+    // ==========================================
+    // 搭卡：导出当前显示效果 (区分平台)
+    // ==========================================
+    function renderSlotToDataUrl(key, outW = 1000) {
+        return new Promise(resolve => {
+            const st = matchState.slots[key];
+            if (!st) return resolve(null);
+            const rec = allImages.find(i => i.id === st.id);
+            if (!rec) return resolve(null);
+
+            // QQ是4:3，网易云因为要充当整个屏幕背景，我们用 5:4 比例(高度1250)来截取
+            const outH = key === 'qq_cover' ? (outW * 3 / 4) : 
+                         key === 'ne_cover' ? (outW * 5 / 4) : outW;
+
+            const im = new Image();
+            im.onload = () => {
+                const cvs = document.createElement('canvas');
+                cvs.width = outW; cvs.height = outH;
+                const ctx = cvs.getContext('2d');
+                ctx.fillStyle = '#ffffff';
+                ctx.fillRect(0, 0, outW, outH);
+
+                const k = Math.max(outW / im.width, outH / im.height) * st.s;
+                const w = im.width * k, h = im.height * k;
+                const left = (outW - w) / 2 + st.x / 100 * outW;
+                const top  = (outH - h) / 2 + st.y / 100 * outH;
+                ctx.drawImage(im, left, top, w, h);
+                resolve(cvs.toDataURL('image/jpeg', 0.92));
+            };
+            im.onerror = () => resolve(null);
+            im.src = rec.dataUrl;
+        });
+    }
+
+    function downloadImage(dataUrl, filename) {
+        const a = document.createElement('a');
+        a.href = dataUrl;
+        a.download = filename;
+        a.click();
+    }
+
+    async function downloadSlot(key) {
+        const slot = MATCH_SLOTS.find(s => s.key === key);
+        const url = await renderSlotToDataUrl(key);
+        if (!url) return InsDialog.alert('这一格还没有图片');
+        downloadImage(url, `Match_${slot.name}_${Date.now()}.jpg`);
+    }
+
+    async function downloadAllMatchImages() {
+        const isWx = currentPlatform === 'wx';
+        const isQq = currentPlatform === 'qq';
+        const targetKeys = isWx ? ['cover', 'avatar', 'pin1', 'pin2'] : 
+                           isQq ? ['qq_cover', 'qq_avatar'] : 
+                           ['ne_cover', 'ne_avatar'];
+        
+        let count = 0;
+        const hasImages = targetKeys.some(k => matchState.slots[k]);
+        if (!hasImages) return InsDialog.alert('当前还没有设置任何图片');
+
+        InsDialog.alert('正在为您逐张下载，请注意允许浏览器的下载提示...');
+
+        for (const key of targetKeys) {
+            const url = await renderSlotToDataUrl(key, 1000);
+            if (!url) continue;
+            
+            const slot = MATCH_SLOTS.find(s => s.key === key);
+            downloadImage(url, `Match_${slot.name}_${Date.now()}.jpg`);
+            count++;
+            await new Promise(r => setTimeout(r, 400)); 
+        }
+        
+        InsDialog.alert(`✅ 已成功下载 ${count} 张图片！\n快去换上吧。`);
+    }
+
+    // ==========================================
+    // 搭卡：搭配库（隔离三平台）
+    // ==========================================
+    const COMBO_KEY = 'wx_combos_v2';
+    const readCombos = () => { try { return JSON.parse(localStorage.getItem(COMBO_KEY)) || []; } catch (e) { return []; } };
+
+    async function saveComboPreset() {
+        const isWx = currentPlatform === 'wx';
+        const isQq = currentPlatform === 'qq';
+        const pName = isWx ? '微信' : isQq ? 'QQ' : '网易云';
+        const targetKeys = isWx ? ['cover', 'avatar', 'pin1', 'pin2'] : 
+                           isQq ? ['qq_cover', 'qq_avatar'] : 
+                           ['ne_cover', 'ne_avatar'];
+        
+        const hasImages = targetKeys.some(k => matchState.slots[k]);
+        if (!hasImages) return InsDialog.alert('先选几张图再保存吧');
+
+        const name = await InsDialog.prompt(`给这套${pName}搭配起个名字：`, '新搭配');
+        if (name === null || !name.trim()) return;
+
+        const slotsToSave = {};
+        targetKeys.forEach(k => { if (matchState.slots[k]) slotsToSave[k] = JSON.parse(JSON.stringify(matchState.slots[k])); });
+
+        const state = {
+            id: Date.now().toString(),
+            name: name.trim(),
+            platform: currentPlatform, 
+            slots: slotsToSave,
+            sign: isWx ? document.querySelector('.wx-signature').innerText : isQq ? document.querySelector('.qq-sign-input').innerHTML : '',
+            nickname: isWx ? document.querySelector('.wx-name').innerText : isQq ? document.querySelector('.qq-name-input').innerText : document.querySelector('.ne-name-input').innerText,
+            qqId: isQq ? document.querySelector('.qq-id-input').innerText : '',
+            qqLike: isQq ? document.querySelector('.qq-like-input').innerText : '',
+            qqStatus: isQq ? document.querySelector('.qq-status-input').innerText : '',
+            neStats: currentPlatform === 'netease' ? document.querySelector('.ne-stats-input').innerText : ''
+        };
+
+        const combos = readCombos();
+        combos.unshift(state);
+        try {
+            localStorage.setItem(COMBO_KEY, JSON.stringify(combos));
+            await InsDialog.alert('已保存，点右上角列表可随时切换');
+        } catch (e) {
+            await InsDialog.alert('保存失败：存储空间不足');
         }
     }
 
-    // 从 GitHub 下载恢复 (无视文件大小限制)
-    async function syncFromGitHub(e) {
-        const user = localStorage.getItem('gh_user');
-        const repo = localStorage.getItem('gh_repo');
-        const token = localStorage.getItem('gh_token');
-        if (!user || !repo || !token) return alert('请先填写并保存 GitHub 配置');
+    function closeComboModal() {
+        document.getElementById('combo-modal').classList.remove('active');
+    }
 
-        if (!confirm(`警告：此操作将用云端数据完全覆盖当前手机上的「${currentLibrary}」数据，确定要恢复吗？`)) return;
+    let currentComboTab = 'wx';
 
-        const btn = e.target;
-        btn.innerText = '下载中...';
-        btn.style.pointerEvents = 'none';
+    function openComboModal() {
+        currentComboTab = currentPlatform; 
+        renderComboList(currentComboTab);
+        document.getElementById('combo-modal').classList.add('active');
+    }
 
-        try {
-            const path = `backup_${currentLibrary}.json`;
-            
-            // 【核心修复】加上 .raw 请求头，直接获取源文件，绕过 Base64 和 1MB 限制
-            const res = await fetch(`https://api.github.com/repos/${user}/${repo}/contents/${path}`, {
-                headers: {
-                    'Authorization': `token ${token}`,
-                    'Accept': 'application/vnd.github.v3.raw' 
-                },
-                cache: 'no-store'
-            });
+    function renderComboList(platform) {
+        currentComboTab = platform;
+        
+        ['wx', 'qq', 'netease'].forEach(p => {
+            const el = document.getElementById(`tab-combo-${p}`);
+            if(!el) return;
+            el.style.color = platform === p ? 'var(--text-main)' : 'var(--text-sub)';
+            el.style.borderBottom = platform === p ? '2px solid var(--text-main)' : 'none';
+        });
 
-            if (!res.ok) {
-                if (res.status === 404) throw new Error('云端找不到这个图库的备份文件');
-                throw new Error(`下载失败，状态码: ${res.status}`);
-            }
+        const list = document.getElementById('combo-list');
+        const combos = readCombos().filter(c => (c.platform || 'wx') === platform);
+        const pName = platform === 'wx' ? '微信' : platform === 'qq' ? 'QQ' : '网易云';
 
-            // 直接解析 JSON，不需要解密了
-            const data = await res.json();
+        if (combos.length === 0) {
+            list.innerHTML = `<div style="text-align:center; padding:60px 0; color:var(--text-sub); font-size:14px;">还没有保存过${pName}搭配</div>`;
+        } else {
+            list.innerHTML = combos.map(c => {
+                const thumb = key => {
+                    const st = c.slots && c.slots[key];
+                    const rec = st && allImages.find(i => i.id === st.id);
+                    return rec ? `<img src="${rec.thumbDataUrl || rec.dataUrl}">` : '';
+                };
+                const previewHtml = platform === 'wx' ? thumb('avatar') + thumb('cover') 
+                                  : platform === 'qq' ? thumb('qq_avatar') + thumb('qq_cover')
+                                  : thumb('ne_avatar') + thumb('ne_cover');
 
-            // 清空本地当前库
-            await bulkTx(s => s.clear());
-            const txJClear = db.transaction([STORE_JOURNAL], 'readwrite');
-            txJClear.objectStore(STORE_JOURNAL).clear();
-            await new Promise(r => txJClear.oncomplete = r);
-
-            // 写入云端数据
-            if (data.media && data.media.length > 0) {
-                await bulkTx(s => data.media.forEach(img => s.put(img)));
-            }
-            if (data.journal && data.journal.length > 0) {
-                const txJ = db.transaction([STORE_JOURNAL], 'readwrite');
-                const storeJ = txJ.objectStore(STORE_JOURNAL);
-                data.journal.forEach(j => storeJ.put(j));
-                await new Promise(r => txJ.oncomplete = r);
-            }
-
-            alert('✅ 从云端恢复成功！');
-            await loadData();
-            closeSettings();
-        } catch (err) {
-            console.error(err);
-            alert('恢复失败：\n' + err.message);
-        } finally {
-            btn.innerText = '下载';
-            btn.style.pointerEvents = 'auto';
+                return `
+                <div class="combo-item">
+                    <div class="combo-preview" onclick="applyCombo('${c.id}')">
+                        ${previewHtml}
+                    </div>
+                    <div class="combo-info" onclick="applyCombo('${c.id}')">
+                        <div class="combo-name">${escapeHtml(c.name)}</div>
+                    </div>
+                    <div class="combo-del" onclick="deleteCombo('${c.id}', event)">删除</div>
+                </div>`;
+            }).join('');
         }
+    }
+
+    function applyCombo(id) {
+        const combos = readCombos();
+        const c = combos.find(x => x.id === id);
+        if (!c) return;
+        
+        const cPlat = c.platform || 'wx';
+        
+        if (currentPlatform !== cPlat) {
+            currentPlatform = cPlat;
+            document.body.setAttribute('data-platform', currentPlatform);
+        }
+
+        const targetKeys = cPlat === 'wx' ? ['cover', 'avatar', 'pin1', 'pin2'] : 
+                           cPlat === 'qq' ? ['qq_cover', 'qq_avatar'] : 
+                           ['ne_cover', 'ne_avatar'];
+        
+        targetKeys.forEach(k => {
+            if (c.slots[k]) matchState.slots[k] = JSON.parse(JSON.stringify(c.slots[k]));
+            else delete matchState.slots[k];
+        });
+
+        if (cPlat === 'wx') {
+            if (c.sign !== undefined) matchState.sign = c.sign;
+            if (c.nickname !== undefined) matchState.name = c.nickname;
+        } else if (cPlat === 'qq') {
+            if (c.sign !== undefined) matchState.qqSign = c.sign;
+            if (c.nickname !== undefined) matchState.qqName = c.nickname;
+            if (c.qqId !== undefined) matchState.qqId = c.qqId;
+            if (c.qqLike !== undefined) matchState.qqLike = c.qqLike;
+            if (c.qqStatus !== undefined) matchState.qqStatus = c.qqStatus;
+        } else {
+            if (c.nickname !== undefined) matchState.neName = c.nickname;
+            if (c.neStats !== undefined) matchState.neStats = c.neStats;
+        }
+
+        applyMatchState();
+        saveMatchState();
+        closeComboModal();
+    }
+
+    async function deleteCombo(id, event) {
+        event.stopPropagation();
+        const ok = await InsDialog.confirm('删除这套搭配？');
+        if (!ok) return;
+        let combos = readCombos();
+        combos = combos.filter(x => x.id !== id);
+        localStorage.setItem(COMBO_KEY, JSON.stringify(combos));
+        renderComboList(currentComboTab);
+    }
+
+    // ==========================================
+    // 沉浸式搭卡 控制与滑动切换
+    // ==========================================
+    let currentPlatform = 'wx';
+
+    function openMatchView() {
+        toggleSidebar(false);
+        document.body.classList.add('immersive-match');
+        document.body.setAttribute('data-platform', currentPlatform);
+        switchView('match');
+        applyMatchState();
+    }
+
+    function closeMatchView() {
+        document.body.classList.remove('immersive-match');
+        switchView('gallery');
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        const slider = document.getElementById('match-slider');
+        if (!slider) return;
+        
+        let startX = 0, isSwiping = false;
+        
+        slider.addEventListener('touchstart', e => {
+            if (e.target.closest('.wx-cover-slot') || e.target.closest('.wx-avatar-slot') || e.target.closest('.wx-post-img-slot') ||
+                e.target.closest('.qq-cover-slot') || e.target.closest('.qq-avatar-slot') ||
+                e.target.closest('.ne-cover-slot') || e.target.closest('.ne-avatar-slot')) return;
+            
+            startX = e.touches[0].clientX;
+            isSwiping = true;
+        }, { passive: true });
+
+        slider.addEventListener('touchend', e => {
+            if (!isSwiping) return;
+            const endX = e.changedTouches[0].clientX;
+            const diff = endX - startX;
+            
+            if (diff < -50) {
+                if (currentPlatform === 'wx') currentPlatform = 'qq';
+                else if (currentPlatform === 'qq') currentPlatform = 'netease';
+                document.body.setAttribute('data-platform', currentPlatform);
+            } else if (diff > 50) {
+                if (currentPlatform === 'netease') currentPlatform = 'qq';
+                else if (currentPlatform === 'qq') currentPlatform = 'wx';
+                document.body.setAttribute('data-platform', currentPlatform);
+            }
+            isSwiping = false;
+        });
+    });
+
+    // ==========================================
+    // Ins 风弹窗引擎
+    // ==========================================
+    const InsDialog = {
+        show(msg, type, defaultText = '') {
+            return new Promise(resolve => {
+                const overlay = document.getElementById('ins-dialog-overlay');
+                const msgEl = document.getElementById('ins-dialog-msg');
+                const inputEl = document.getElementById('ins-dialog-input');
+                const cancelBtn = document.getElementById('ins-dialog-cancel');
+                const confirmBtn = document.getElementById('ins-dialog-confirm');
+
+                msgEl.innerText = msg;
+                inputEl.style.display = type === 'prompt' ? 'block' : 'none';
+                if (type === 'prompt') {
+                    inputEl.value = defaultText;
+                    setTimeout(() => inputEl.focus(), 100);
+                }
+                cancelBtn.style.display = type === 'alert' ? 'none' : 'block';
+
+                const cleanup = () => {
+                    overlay.classList.remove('active');
+                    cancelBtn.onclick = null;
+                    confirmBtn.onclick = null;
+                };
+                cancelBtn.onclick = () => { cleanup(); resolve(null); };
+                confirmBtn.onclick = () => {
+                    cleanup();
+                    resolve(type === 'prompt' ? inputEl.value : true);
+                };
+                overlay.classList.add('active');
+            });
+        },
+        alert(msg) { return this.show(msg, 'alert'); },
+        confirm(msg) { return this.show(msg, 'confirm'); },
+        prompt(msg, defaultText) { return this.show(msg, 'prompt', defaultText); }
+    };
+    
+    // ==========================================
+    // 色彩档案 (按色相投票，v3)
+    // ==========================================
+    let activeColor = null;
+
+    const COLOR_CATEGORIES = [
+        { key: 'red',    name: '红',   hex: '#e74c3c' },
+        { key: 'pink',   name: '粉',   hex: '#ff8fa8' },
+        { key: 'orange', name: '橙',   hex: '#e67e22' },
+        { key: 'brown',  name: '棕',   hex: '#8b5a2b' },
+        { key: 'yellow', name: '黄',   hex: '#f1c40f' },
+        { key: 'green',  name: '绿',   hex: '#2ecc71' },
+        { key: 'cyan',   name: '青',   hex: '#1abc9c' },
+        { key: 'blue',   name: '蓝',   hex: '#3498db' },
+        { key: 'purple', name: '紫',   hex: '#9b59b6' },
+        { key: 'gray',   name: '黑白', hex: '#95a5a6' }
+    ];
+
+    function rgbToHsl(r, g, b) {
+        r /= 255; g /= 255; b /= 255;
+        const max = Math.max(r, g, b), min = Math.min(r, g, b);
+        const l = (max + min) / 2, d = max - min;
+        if (d === 0) return [0, 0, l];
+        const s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+        let h;
+        if (max === r) h = (g - b) / d + (g < b ? 6 : 0);
+        else if (max === g) h = (b - r) / d + 2;
+        else h = (r - g) / d + 4;
+        return [h * 60, s, l];
+    }
+
+    function hslToHex(h, s, l) {
+        h = ((h % 360) + 360) % 360;
+        const c = (1 - Math.abs(2 * l - 1)) * s;
+        const x = c * (1 - Math.abs((h / 60) % 2 - 1));
+        const m = l - c / 2;
+        let r, g, b;
+        if (h < 60)       [r, g, b] = [c, x, 0];
+        else if (h < 120) [r, g, b] = [x, c, 0];
+        else if (h < 180) [r, g, b] = [0, c, x];
+        else if (h < 240) [r, g, b] = [0, x, c];
+        else if (h < 300) [r, g, b] = [x, 0, c];
+        else              [r, g, b] = [c, 0, x];
+        const to = v => Math.round((v + m) * 255).toString(16).padStart(2, '0');
+        return `#${to(r)}${to(g)}${to(b)}`;
+    }
+
+    // 从 HSL 判定色系
+    function hslCategory(h, s, l) {
+        if (s < 0.14 || l < 0.07 || l > 0.95) return 'gray';
+        h = ((h % 360) + 360) % 360;
+        if (h >= 15 && h < 48 && l < 0.42) return 'brown';            // 棕 = 暗橙
+        if ((h >= 325 || h < 12) && l > 0.62 && s < 0.85) return 'pink'; // 粉 = 亮红
+        if (h < 14 || h >= 335) return 'red';
+        if (h < 45)  return 'orange';
+        if (h < 68)  return 'yellow';
+        if (h < 165) return 'green';
+        if (h < 195) return 'cyan';
+        if (h < 255) return 'blue';
+        if (h < 325) return 'purple';
+        return 'red';
+    }
+
+    function hexToCategory(hex) {
+        if (!hex || hex.length !== 7) return 'gray';
+        const [h, s, l] = rgbToHsl(
+            parseInt(hex.slice(1,3),16), parseInt(hex.slice(3,5),16), parseInt(hex.slice(5,7),16)
+        );
+        return hslCategory(h, s, l);
+    }
+
+    // 核心：逐像素投票，返回 { hex, cat }
+    function extractDominantColor(src) {
+        return new Promise(resolve => {
+            const img = new Image();
+            img.onload = () => {
+                const S = 96;
+                const cvs = document.createElement('canvas');
+                cvs.width = S; cvs.height = S;
+                const ctx = cvs.getContext('2d', { willReadFrequently: true });
+                ctx.drawImage(img, 0, 0, S, S);
+
+                try {
+                    const data = ctx.getImageData(0, 0, S, S).data;
+                    const votes = {}, acc = {};
+                    let chroma = 0, total = 0, grayL = 0;
+                    const c = (S - 1) / 2, maxR = Math.hypot(c, c);
+
+                    for (let y = 0; y < S; y++) {
+                        for (let x = 0; x < S; x++) {
+                            const i = (y * S + x) * 4;
+                            if (data[i + 3] < 125) continue;
+                            const [h, s, l] = rgbToHsl(data[i], data[i+1], data[i+2]);
+
+                            const wCenter = 1 - 0.55 * (Math.hypot(x - c, y - c) / maxR); // 中心优先
+                            const wLight  = 1 - Math.abs(l - 0.5) * 0.9;  // 过黑过白的色相不可靠
+                            const wSat    = 0.15 + Math.pow(s, 1.4);      // 鲜艳的像素更有发言权
+                            const w = wCenter * wLight * wSat;
+                            const base = wCenter * wLight;
+
+                            const cat = hslCategory(h, s, l);
+                            total += base;
+                            if (cat === 'gray') grayL += l * base; else chroma += base;
+
+                            votes[cat] = (votes[cat] || 0) + w;
+                            if (!acc[cat]) acc[cat] = { sin:0, cos:0, s:0, l:0, w:0 };
+                            const a = acc[cat];
+                            const rad = h * Math.PI / 180;
+                            a.sin += Math.sin(rad) * w;   // 色相是环形的，必须用三角函数求均值
+                            a.cos += Math.cos(rad) * w;
+                            a.s += s * w; a.l += l * w; a.w += w;
+                        }
+                    }
+
+                    if (total === 0) return resolve({ hex: '#808080', cat: 'gray' });
+
+                    // 彩色像素占比太低 → 整张图算黑白
+                    if (chroma / total < 0.2) {
+                        const meanL = Math.min(0.92, Math.max(0.08, grayL / (total - chroma || total)));
+                        return resolve({ hex: hslToHex(0, 0, meanL), cat: 'gray' });
+                    }
+
+                    let winner = null;
+                    for (const k in votes) {
+                        if (k === 'gray') continue;
+                        if (!winner || votes[k] > votes[winner]) winner = k;
+                    }
+                    if (!winner) return resolve({ hex: '#808080', cat: 'gray' });
+
+                    const a = acc[winner];
+                    const h = Math.atan2(a.sin / a.w, a.cos / a.w) * 180 / Math.PI;
+                    const s = Math.min(1, (a.s / a.w) * 1.1);
+                    const l = Math.min(0.78, Math.max(0.22, a.l / a.w));
+                    resolve({ hex: hslToHex(h, s, l), cat: winner });
+                } catch (e) {
+                    resolve({ hex: '#808080', cat: 'gray' });
+                }
+            };
+            img.onerror = () => resolve({ hex: '#808080', cat: 'gray' });
+            img.src = src;
+        });
+    }
+
+    // 兼容旧数据：没有 colorCat 就从 hex 推
+    const catOf = img => img.colorCat || (img.color ? hexToCategory(img.color) : null);
+
+    function renderColorFilters() {
+        const grid = document.getElementById('color-filter-grid');
+        if (!grid) return;
+
+        const counts = {};
+        allImages.forEach(img => {
+            const c = catOf(img);
+            if (c) counts[c] = (counts[c] || 0) + 1;
+        });
+
+        grid.innerHTML = '';
+        COLOR_CATEGORIES.forEach(c => {
+            if (!counts[c.key]) return;
+            const chip = document.createElement('div');
+            chip.className = `color-chip ${activeColor === c.key ? 'active' : ''}`;
+            chip.style.background = c.hex;
+            chip.title = `${c.name} (${counts[c.key]})`;
+            chip.innerHTML = `<span class="count">${counts[c.key]}</span>`;
+            chip.onclick = () => {
+                activeColor = activeColor === c.key ? null : c.key;
+                activeTag = null;
+                activeCollection = 'All';
+                selectedIds.clear(); lastSelIdx = -1;
+                if (currentMode !== 'gallery') switchView('gallery');
+                updateGalleryTitle();
+                renderGalleryTabs();
+                renderGallery();
+                renderColorFilters();
+                toggleSidebar(false);
+            };
+            grid.appendChild(chip);
+        });
+
+        if (!grid.innerHTML) {
+            grid.innerHTML = '<div style="color:var(--text-sub);font-size:13px;">正在分析色彩，或暂无图片</div>';
+        }
+    }
+
+    function filterByColorFromViewer() {
+        const c = currentImg && catOf(currentImg);
+        if (!c) return;
+        activeColor = c;
+        activeTag = null;
+        activeCollection = 'All';
+        closeViewer();
+        updateGalleryTitle();
+        renderGalleryTabs();
+        renderGallery();
+        renderColorFilters();
+    }
+
+    // 新图补算
+    async function migrateColors() {
+        const need = allImages.filter(img => !img.colorCat && img.dataUrl);
+        if (need.length === 0) return;
+        for (const img of need) {
+            const r = await extractDominantColor(img.dataUrl);
+            img.color = r.hex; img.colorCat = r.cat;
+            await dbOp(STORE_MEDIA, 'readwrite', s => s.put(img));
+        }
+        renderColorFilters();
+        renderGallery();
+    }
+
+    // 算法升级后全量重算一次
+    async function recomputeAllColors() {
+        if (localStorage.getItem('color_algo_v5')) return;
+        for (const img of allImages) {
+            if (!img.dataUrl) continue;
+            const r = await extractDominantColor(img.dataUrl);
+            img.color = r.hex; img.colorCat = r.cat;
+            await dbOp(STORE_MEDIA, 'readwrite', s => s.put(img));
+        }
+        localStorage.setItem('color_algo_v5', 'true');
+        renderColorFilters();
+        renderGallery();
     }
 </script>
 </body>

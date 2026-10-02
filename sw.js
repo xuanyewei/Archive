@@ -1,4 +1,4 @@
-const CACHE_NAME = 'archive-cache-v3'; // 下次更新就改成 v3
+const CACHE_NAME = 'archive-cache-v4'; // 下次更新就改成 v3
 const urlsToCache = [
   './',
   './index.html',
