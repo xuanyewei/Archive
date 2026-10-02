@@ -2642,8 +2642,9 @@
                 thumbDataUrl: currentImg.thumbDataUrl || await generateThumbnail(tempBase64),
                 desc: document.getElementById('f-desc').value.trim(),
                 collections: def.cols.length ? def.cols : ['Uncategorized'],
-                tags: def.tags,
-                time: currentImg.time, order: currentImg.order, boundId: currentImg.boundId || null
+tags: def.tags,
+color: currentImg.color, colorCat: currentImg.colorCat,
+time: currentImg.time, order: currentImg.order, boundId: currentImg.boundId || null
             };
             await dbOp(STORE_MEDIA, 'readwrite', s => s.put(newData));
             closeModal('image-modal'); openViewer(newData); loadData(); return;
@@ -2671,7 +2672,7 @@
             const cr = await extractDominantColor(b64); // 提取主色调
             return dbOp(STORE_MEDIA, 'readwrite', s => s.put({
                 id: (baseTime + n).toString(), dataUrl: b64, thumbDataUrl: thumb,
-                desc, collections: cols, tags, color, // <-- 这里加上 color
+                desc, collections: cols, tags, color: cr.hex, colorCat: cr.cat,
                 time: baseTime + n, order: baseTime + n, boundId: null
             }));
         });
