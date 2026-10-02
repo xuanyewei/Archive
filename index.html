@@ -713,6 +713,33 @@
             </div>
         </div>
 
+        <!-- GitHub 云端同步 -->
+        <div class="set-group">
+            <div class="set-group-title">云端同步 (GitHub Sync)</div>
+            <div class="set-card">
+                <div class="set-item" style="flex-direction: column; align-items: flex-start; gap: 8px;">
+                    <input type="text" id="gh-user" class="input-box" placeholder="GitHub 用户名 (如: octocat)" style="margin-bottom:0;">
+                    <input type="text" id="gh-repo" class="input-box" placeholder="私有仓库名 (如: archive-backup)" style="margin-bottom:0;">
+                    <input type="password" id="gh-token" class="input-box" placeholder="Token (ghp_...)" style="margin-bottom:0;">
+                    <button class="btn-full" style="margin-top:4px; padding:10px; background:var(--pill-bg); color:var(--text-main);" onclick="saveGhConfig()">保存配置</button>
+                </div>
+                <div class="set-item">
+                    <div>
+                        <div class="set-label">备份到云端</div>
+                        <div class="set-sub" id="gh-last-sync">尚未备份</div>
+                    </div>
+                    <div class="set-action" onclick="syncToGitHub(event)">上传</div>
+                </div>
+                <div class="set-item">
+                    <div>
+                        <div class="set-label">从云端恢复</div>
+                        <div class="set-sub">将覆盖当前图库本地数据</div>
+                    </div>
+                    <div class="set-action danger" onclick="syncFromGitHub(event)">下载</div>
+                </div>
+            </div>
+        </div>
+        
         <!-- 导入与导出 -->
         <div class="set-group">
             <div class="set-group-title">数据备份 (Export / Import)</div>
@@ -2268,7 +2295,7 @@
         colSelect.innerHTML = cArray.length > 0 
             ? cArray.map(c => `<option value="${c}">${c}</option>`).join('')
             : '<option value="">无合集</option>';
-
+        loadGhConfig();
         document.getElementById('settings-modal').classList.add('active');
     }
 
@@ -2398,6 +2425,140 @@
                 console.log('SW 注册失败:', err);
             });
         });
+    }
+        // ==========================================
+    // GitHub 同步逻辑
+    // ==========================================
+
+    // 处理中文安全的 Base64 编码/解码
+    function encodeBase64(str) {
+        return btoa(encodeURIComponent(str).replace(/%([0-9A-F]{2})/g, (match, p1) => String.fromCharCode('0x' + p1)));
+    }
+    function decodeBase64(str) {
+        return decodeURIComponent(atob(str.replace(/\n/g, '')).split('').map(c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2)).join(''));
+    }
+
+    function saveGhConfig() {
+        localStorage.setItem('gh_user', document.getElementById('gh-user').value.trim());
+        localStorage.setItem('gh_repo', document.getElementById('gh-repo').value.trim());
+        localStorage.setItem('gh_token', document.getElementById('gh-token').value.trim());
+        alert('GitHub 配置已保存！');
+    }
+
+    function loadGhConfig() {
+        document.getElementById('gh-user').value = localStorage.getItem('gh_user') || '';
+        document.getElementById('gh-repo').value = localStorage.getItem('gh_repo') || '';
+        document.getElementById('gh-token').value = localStorage.getItem('gh_token') || '';
+        document.getElementById('gh-last-sync').innerText = localStorage.getItem(`gh_sync_${currentLibrary}`) || '尚未备份';
+    }
+
+    // 调用 GitHub API 获取文件信息（为了拿到 sha，更新文件必须有旧 sha）
+    async function getGhFileInfo(user, repo, token, path) {
+        const res = await fetch(`https://api.github.com/repos/${user}/${repo}/contents/${path}`, {
+            headers: { 'Authorization': `token ${token}`, 'Accept': 'application/vnd.github.v3+json' },
+            cache: 'no-store'
+        });
+        if (res.status === 404) return null;
+        if (!res.ok) throw new Error(`API 请求失败: ${res.status} ${res.statusText}`);
+        return await res.json();
+    }
+
+    // 上传到 GitHub
+    async function syncToGitHub(e) {
+        const user = localStorage.getItem('gh_user');
+        const repo = localStorage.getItem('gh_repo');
+        const token = localStorage.getItem('gh_token');
+        if (!user || !repo || !token) return alert('请先填写并保存 GitHub 配置');
+
+        const btn = e.target;
+        btn.innerText = '上传中...';
+        btn.style.pointerEvents = 'none';
+
+        try {
+            // 文件名按图库区分，比如 backup_ArchiveDB.json
+            const path = `backup_${currentLibrary}.json`;
+            const data = { library: currentLibrary, timestamp: Date.now(), media: allImages, journal: allJournals };
+            const contentB64 = encodeBase64(JSON.stringify(data));
+
+            const fileInfo = await getGhFileInfo(user, repo, token, path);
+            const body = {
+                message: `Auto Backup: ${currentLibrary} at ${new Date().toLocaleString()}`,
+                content: contentB64
+            };
+            if (fileInfo) body.sha = fileInfo.sha;
+
+            const res = await fetch(`https://api.github.com/repos/${user}/${repo}/contents/${path}`, {
+                method: 'PUT',
+                headers: { 'Authorization': `token ${token}`, 'Accept': 'application/vnd.github.v3+json', 'Content-Type': 'application/json' },
+                body: JSON.stringify(body)
+            });
+
+            if (!res.ok) {
+                const errJson = await res.json();
+                throw new Error(errJson.message || '上传失败');
+            }
+
+            const timeStr = new Date().toLocaleString();
+            localStorage.setItem(`gh_sync_${currentLibrary}`, timeStr);
+            document.getElementById('gh-last-sync').innerText = timeStr;
+            alert('🎉 备份成功！数据已安全存入你的私人仓库。');
+        } catch (err) {
+            console.error(err);
+            alert('上传失败，请检查用户名、仓库名或 Token 是否正确。\n报错信息：' + err.message);
+        } finally {
+            btn.innerText = '上传';
+            btn.style.pointerEvents = 'auto';
+        }
+    }
+
+    // 从 GitHub 下载恢复
+    async function syncFromGitHub(e) {
+        const user = localStorage.getItem('gh_user');
+        const repo = localStorage.getItem('gh_repo');
+        const token = localStorage.getItem('gh_token');
+        if (!user || !repo || !token) return alert('请先填写并保存 GitHub 配置');
+
+        if (!confirm(`警告：此操作将用云端数据完全覆盖当前手机上的「${currentLibrary}」数据，确定要恢复吗？`)) return;
+
+        const btn = e.target;
+        btn.innerText = '下载中...';
+        btn.style.pointerEvents = 'none';
+
+        try {
+            const path = `backup_${currentLibrary}.json`;
+            const fileInfo = await getGhFileInfo(user, repo, token, path);
+            if (!fileInfo) throw new Error('你的仓库里还没有这个图库的备份文件');
+
+            const contentStr = decodeBase64(fileInfo.content);
+            const data = JSON.parse(contentStr);
+
+            // 清空本地当前库
+            await bulkTx(s => s.clear());
+            const txJClear = db.transaction([STORE_JOURNAL], 'readwrite');
+            txJClear.objectStore(STORE_JOURNAL).clear();
+            await new Promise(r => txJClear.oncomplete = r);
+
+            // 写入云端数据
+            if (data.media && data.media.length > 0) {
+                await bulkTx(s => data.media.forEach(img => s.put(img)));
+            }
+            if (data.journal && data.journal.length > 0) {
+                const txJ = db.transaction([STORE_JOURNAL], 'readwrite');
+                const storeJ = txJ.objectStore(STORE_JOURNAL);
+                data.journal.forEach(j => storeJ.put(j));
+                await new Promise(r => txJ.oncomplete = r);
+            }
+
+            alert('✅ 从云端恢复成功！');
+            await loadData();
+            closeSettings();
+        } catch (err) {
+            console.error(err);
+            alert('恢复失败：\n' + err.message);
+        } finally {
+            btn.innerText = '下载';
+            btn.style.pointerEvents = 'auto';
+        }
     }
 </script>
 </body>
