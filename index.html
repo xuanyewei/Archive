@@ -2426,16 +2426,13 @@
             });
         });
     }
-        // ==========================================
-    // GitHub 同步逻辑
+    // ==========================================
+    // GitHub 同步逻辑 (已修复大文件下载限制)
     // ==========================================
 
-    // 处理中文安全的 Base64 编码/解码
+    // 处理中文安全的 Base64 编码/解码 (仅上传需要)
     function encodeBase64(str) {
         return btoa(encodeURIComponent(str).replace(/%([0-9A-F]{2})/g, (match, p1) => String.fromCharCode('0x' + p1)));
-    }
-    function decodeBase64(str) {
-        return decodeURIComponent(atob(str.replace(/\n/g, '')).split('').map(c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2)).join(''));
     }
 
     function saveGhConfig() {
@@ -2459,7 +2456,7 @@
             cache: 'no-store'
         });
         if (res.status === 404) return null;
-        if (!res.ok) throw new Error(`API 请求失败: ${res.status} ${res.statusText}`);
+        if (!res.ok) throw new Error(`API 请求失败: ${res.status}`);
         return await res.json();
     }
 
@@ -2475,7 +2472,6 @@
         btn.style.pointerEvents = 'none';
 
         try {
-            // 文件名按图库区分，比如 backup_ArchiveDB.json
             const path = `backup_${currentLibrary}.json`;
             const data = { library: currentLibrary, timestamp: Date.now(), media: allImages, journal: allJournals };
             const contentB64 = encodeBase64(JSON.stringify(data));
@@ -2504,14 +2500,14 @@
             alert('🎉 备份成功！数据已安全存入你的私人仓库。');
         } catch (err) {
             console.error(err);
-            alert('上传失败，请检查用户名、仓库名或 Token 是否正确。\n报错信息：' + err.message);
+            alert('上传失败，请检查配置。\n报错信息：' + err.message);
         } finally {
             btn.innerText = '上传';
             btn.style.pointerEvents = 'auto';
         }
     }
 
-    // 从 GitHub 下载恢复
+    // 从 GitHub 下载恢复 (无视文件大小限制)
     async function syncFromGitHub(e) {
         const user = localStorage.getItem('gh_user');
         const repo = localStorage.getItem('gh_repo');
@@ -2526,11 +2522,23 @@
 
         try {
             const path = `backup_${currentLibrary}.json`;
-            const fileInfo = await getGhFileInfo(user, repo, token, path);
-            if (!fileInfo) throw new Error('你的仓库里还没有这个图库的备份文件');
+            
+            // 【核心修复】加上 .raw 请求头，直接获取源文件，绕过 Base64 和 1MB 限制
+            const res = await fetch(`https://api.github.com/repos/${user}/${repo}/contents/${path}`, {
+                headers: {
+                    'Authorization': `token ${token}`,
+                    'Accept': 'application/vnd.github.v3.raw' 
+                },
+                cache: 'no-store'
+            });
 
-            const contentStr = decodeBase64(fileInfo.content);
-            const data = JSON.parse(contentStr);
+            if (!res.ok) {
+                if (res.status === 404) throw new Error('云端找不到这个图库的备份文件');
+                throw new Error(`下载失败，状态码: ${res.status}`);
+            }
+
+            // 直接解析 JSON，不需要解密了
+            const data = await res.json();
 
             // 清空本地当前库
             await bulkTx(s => s.clear());
