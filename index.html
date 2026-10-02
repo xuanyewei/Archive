@@ -1,0 +1,2404 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Archive & Journal</title>
+        <!-- PWA 配置 -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#f4f4f6">
+    <!-- 针对 iOS 的特殊配置 -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="Archive">
+    <link rel="apple-touch-icon" href="icon.png">
+    <style>
+        /* --- 颜色变量 (支持深色模式高对比度) --- */
+        :root {
+            --bg: #f4f4f6;
+            --surface: #ffffff;
+            --text-main: #000000;
+            --text-sub: #8a8a8e;
+            --pill-bg: #e5e5ea;
+            --border: #e5e5ea;
+            --blue: #007aff;
+            --red: #ff3b30;
+            --radius-lg: 24px;
+            --radius-md: 16px;
+            --radius-sm: 10px;
+            --font-ui: -apple-system, BlinkMacSystemFont, "Helvetica Neue", Helvetica, sans-serif;
+            --font-serif: "Georgia", "Times New Roman", "Songti SC", "SimSun", serif;
+        }
+
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --bg: #000000;
+                --surface: #121212;
+                --text-main: #ffffff;
+                --text-sub: #8d8d93;
+                --pill-bg: #222222;
+                --border: #333333;
+            }
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+        body { font-family: var(--font-ui); background-color: var(--bg); color: var(--text-main); padding-bottom: 100px; transition: 0.3s; }
+
+        /* --- 视图切换 --- */
+        .view-section { display: none; padding-top: 20px; animation: fadeIn 0.3s ease; }
+        .view-section.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* --- 顶部 Header --- */
+        .header { padding: 0 20px; margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+        h1 { font-size: 32px; font-weight: 700; letter-spacing: -0.5px; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        @media (max-width: 420px) { h1 { font-size: 24px; } }
+
+        /* 顶部小按钮（改名 / 删除 / 选择） */
+        .hbtn {
+            width: 34px; height: 34px; border-radius: 50%; flex-shrink: 0;
+            display: inline-flex; justify-content: center; align-items: center;
+            border: 1px solid transparent; background: transparent;
+            color: var(--text-main); cursor: pointer; user-select: none;
+            transition: background 0.2s, border-color 0.2s, color 0.2s, transform 0.2s;
+        }
+        .hbtn:hover { border-color: var(--text-main); transform: scale(1.06); }
+        .hbtn:active { transform: scale(0.94); }
+        .hbtn svg { display: block; width: 16px; height: 16px; }
+        .hbtn.danger { color: var(--red); }
+        .hbtn.danger:hover { background: var(--red); border-color: var(--red); color: #fff; }
+        body.selecting #btn-select { background: var(--text-main); border-color: var(--text-main); color: var(--bg); }
+        .header-actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; margin-left: auto; }
+
+        /* --- 图库：横向合集与网格 --- */
+        .sticky-gallery-top {
+            position: sticky; top: 0; background: var(--bg); z-index: 40;
+            padding-top: 20px; margin-top: -20px;
+            padding-bottom: 10px;
+        }
+
+        .collection-scroll { display: flex; gap: 10px; padding: 0 20px 6px; overflow-x: auto; scrollbar-width: none; }
+        .collection-scroll::-webkit-scrollbar { display: none; }
+        .pill { padding: 8px 16px; background: var(--pill-bg); border-radius: 20px; font-size: 14px; font-weight: 600; color: var(--text-sub); white-space: nowrap; cursor: pointer; transition: 0.2s; }
+        .pill.active { background: var(--text-main); color: var(--bg); }
+
+        .gallery-wrapper { padding: 0 16px; }
+        .gallery-container { border-radius: var(--radius-md); overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.04); background: var(--surface); }
+        .gallery { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2px; background: var(--bg); }
+        @media (min-width: 600px) { .gallery { grid-template-columns: repeat(5, 1fr); } }
+
+        .item { aspect-ratio: 1 / 1; background: var(--pill-bg); cursor: grab; overflow: hidden; position: relative; -webkit-touch-callout: none; user-select: none; }
+        .item img { width: 100%; height: 100%; object-fit: cover; transition: 0.3s; pointer-events: none; }
+        .item:active { cursor: grabbing; }
+        .item.dragging { opacity: 0.5; transform: scale(0.95); }
+        .item.drag-over { border: 2px dashed var(--text-sub); }
+        .empty-state { text-align: center; padding: 60px 20px; color: var(--text-sub); font-size: 14px; grid-column: 1 / -1; }
+
+        /* --- 底部导航栏 --- */
+        .bottom-nav {
+            position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%);
+            background: rgba(255, 255, 255, 0.75); backdrop-filter: blur(25px); -webkit-backdrop-filter: blur(25px);
+            display: flex; align-items: center; padding: 6px; border-radius: 30px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.08); border: 0.5px solid rgba(255,255,255,0.2); z-index: 50;
+            transition: opacity 0.25s;
+        }
+        @media (prefers-color-scheme: dark) { .bottom-nav { background: rgba(28, 28, 30, 0.75); border-color: rgba(255,255,255,0.1); } }
+
+        .nav-item { padding: 10px 16px; font-size: 13px; font-weight: 600; color: var(--text-sub); cursor: pointer; border-radius: 20px; transition: 0.2s; white-space: nowrap; }
+        .nav-item.active { color: var(--text-main); background: var(--pill-bg); }
+        .nav-add { width: 42px; height: 42px; background: var(--text-main); color: var(--bg); border-radius: 21px; display: flex; justify-content: center; align-items: center; font-size: 24px; font-weight: 300; cursor: pointer; margin: 0 6px; flex-shrink: 0; }
+
+        /* --- 图片沉浸式查看器 --- */
+        .viewer { position: fixed; inset: 0; background: #000; z-index: 200; display: flex; flex-direction: column; opacity: 0; pointer-events: none; transition: 0.3s; }
+        .viewer.active { opacity: 1; pointer-events: auto; }
+        .viewer-header { padding: 20px; display: flex; justify-content: space-between; align-items: center; position: absolute; top: 0; left: 0; right: 0; z-index: 10; }
+        .viewer-btn { color: #fff; background: none; border: none; font-size: 16px; font-weight: 500; cursor: pointer; }
+        .viewer-img-container { flex: 1; display: flex; justify-content: center; align-items: center; padding: 60px 0 140px; overflow: hidden; touch-action: pan-y; }
+        .viewer-img-container img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+            transition: transform 0.2s ease-out;
+            cursor: zoom-in;
+        }
+        .viewer-footer { position: absolute; bottom: 0; left: 0; right: 0; background: rgba(20,20,20,0.7); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); padding: 20px 24px 40px; border-top: 0.5px solid rgba(255,255,255,0.1); color: #fff; }
+        .v-desc { font-size: 16px; font-weight: 500; margin-bottom: 8px; }
+        .v-meta { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 20px; }
+        .v-tag { background: rgba(255,255,255,0.15); padding: 4px 10px; border-radius: 12px; font-size: 12px; color: #ccc; }
+        .v-actions { display: flex; justify-content: space-between; align-items: center; }
+        .v-actions-left { display: flex; gap: 16px; }
+        .v-action-btn { color: #fff; font-size: 14px; text-decoration: none; cursor: pointer; opacity: 0.8; }
+        .v-action-btn.danger { color: #ff453a; }
+
+        .viewer-nav { position: absolute; top: 50%; transform: translateY(-50%); width: 44px; height: 44px; border-radius: 22px; background: rgba(255,255,255,0.1); backdrop-filter: blur(10px); display: flex; justify-content: center; align-items: center; color: #fff; font-size: 20px; cursor: pointer; z-index: 11; user-select: none; transition: 0.2s; }
+        .viewer-nav:hover { background: rgba(255,255,255,0.2); }
+        .viewer-nav.prev { left: 16px; }
+        .viewer-nav.next { right: 16px; }
+        .viewer-nav.disabled { opacity: 0.2; pointer-events: none; }
+
+        /* --- 绑定功能 --- */
+        .bound-thumb { width: 48px; height: 48px; border-radius: 50%; overflow: hidden; border: 2px solid #fff; cursor: pointer; transition: 0.2s; }
+        .bound-thumb:hover { transform: scale(1.1); }
+        .bound-thumb img { width: 100%; height: 100%; object-fit: cover; }
+        .bind-picker { position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 400; display: none; flex-direction: column; padding: 20px; }
+        .bind-picker.active { display: flex; }
+        .bind-picker-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; overflow-y: auto; margin-top: 16px; }
+        .bind-picker-item { aspect-ratio: 1/1; border-radius: 8px; overflow: hidden; cursor: pointer; border: 2px solid transparent; transition: 0.2s; }
+        .bind-picker-item:hover { border-color: #fff; }
+        .bind-picker-item img { width: 100%; height: 100%; object-fit: cover; }
+
+        /* --- 侧边栏 --- */
+        .sidebar-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.4); opacity: 0; pointer-events: none; transition: 0.3s; z-index: 90; }
+        .sidebar-overlay.active { opacity: 1; pointer-events: auto; }
+        .sidebar { position: fixed; top: 0; left: -300px; bottom: 0; width: 280px; background: var(--surface); z-index: 100; transition: left 0.3s cubic-bezier(0.175, 0.885, 0.32, 1); display: flex; flex-direction: column; overflow-y: auto; }
+        .sidebar.active { left: 0; }
+        .s-header { padding: 24px 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); }
+        .s-title { font-size: 20px; font-weight: 700; }
+        .s-close { font-size: 24px; color: var(--text-sub); cursor: pointer; }
+        .s-section { padding: 20px; }
+        .s-section-title { font-size: 12px; font-weight: 600; color: var(--text-sub); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px; }
+        .s-tags { display: flex; flex-wrap: wrap; gap: 8px; }
+        .s-tag { padding: 6px 12px; background: var(--pill-bg); border-radius: 8px; font-size: 13px; cursor: pointer; }
+        .s-tag.active { background: var(--text-main); color: var(--bg); }
+
+        /* --- 图片上传弹窗 --- */
+        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.4); backdrop-filter: blur(5px); -webkit-backdrop-filter: blur(5px); display: none; justify-content: center; align-items: center; z-index: 300; opacity: 0; transition: 0.3s; padding: 20px; }
+        .modal-overlay.active { display: flex; opacity: 1; }
+        .modal-card { background: var(--surface); width: 100%; max-width: 380px; border-radius: var(--radius-lg); padding: 24px; box-shadow: 0 20px 50px rgba(0,0,0,0.2); transform: translateY(20px); transition: 0.3s; max-height: 90vh; overflow-y: auto; }
+        .modal-overlay.active .modal-card { transform: translateY(0); }
+        .m-header { display: flex; justify-content: space-between; margin-bottom: 20px; font-weight: 600; font-size: 18px; }
+        .m-close { background: var(--bg); border: none; width: 30px; height: 30px; border-radius: 15px; cursor: pointer; color: var(--text-sub); }
+        .input-box { width: 100%; background: var(--bg); border: none; padding: 14px 16px; border-radius: var(--radius-sm); font-size: 15px; color: var(--text-main); outline: none; margin-bottom: 8px; font-family: var(--font-ui); }
+        .upload-area { background: var(--bg); border-radius: var(--radius-sm); height: 140px; display: flex; justify-content: center; align-items: center; color: var(--text-sub); font-weight: 500; font-size: 15px; cursor: pointer; margin-bottom: 20px; position: relative; overflow: hidden; border: 1px dashed var(--border); }
+        .upload-area img { width: 100%; height: 100%; object-fit: cover; position: absolute; inset: 0; display: none; }
+
+        /* --- 批量预览缩略图（可勾选、可单独设置） --- */
+        .batch-thumb { position: relative; width: 60px; height: 60px; border-radius: 8px; overflow: hidden; flex-shrink: 0; cursor: pointer; border: 2px solid transparent; transition: 0.15s; }
+        .batch-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+        .batch-thumb.selected { border-color: var(--blue); }
+        .batch-thumb .check { position: absolute; top: 2px; right: 2px; width: 16px; height: 16px; border-radius: 8px; background: var(--blue); color: #fff; font-size: 10px; display: none; justify-content: center; align-items: center; }
+        .batch-thumb.selected .check { display: flex; }
+        .batch-thumb .custom-dot { position: absolute; bottom: 0; left: 0; right: 0; background: rgba(0,0,0,0.65); color: #fff; font-size: 9px; text-align: center; padding: 1px 0; display: none; }
+        .batch-thumb.customized .custom-dot { display: block; }
+        .batch-toolbar { display: none; align-items: center; justify-content: space-between; font-size: 12px; color: var(--text-sub); margin-bottom: 8px; }
+        .batch-toolbar .act { color: var(--blue); cursor: pointer; font-weight: 600; }
+
+        .btn-full { width: 100%; background: var(--text-main); color: var(--bg); border: none; padding: 16px; border-radius: var(--radius-sm); font-size: 16px; font-weight: 600; cursor: pointer; margin-top: 16px; }
+        .suggest-area { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; margin-bottom: 16px; padding-bottom: 4px; }
+        .suggest-area::-webkit-scrollbar { display: none; }
+        .chip { padding: 4px 10px; background: var(--pill-bg); border-radius: 8px; font-size: 12px; color: var(--text-sub); cursor: pointer; white-space: nowrap; }
+
+        /* =========================================================
+           Journal (文字) 排版系统
+           ========================================================= */
+
+        .text-nav { display: flex; justify-content: flex-start; gap: 24px; padding: 0 20px 20px; border-bottom: 1px solid var(--border); margin-bottom: 30px; overflow-x: auto; scrollbar-width: none; }
+        .text-nav::-webkit-scrollbar { display: none; }
+        .text-nav span { font-size: 13px; letter-spacing: 1px; color: var(--text-sub); cursor: pointer; text-transform: uppercase; white-space: nowrap; transition: 0.2s; }
+        .text-nav span.active { color: var(--text-main); font-weight: 600; border-bottom: 2px solid var(--text-main); padding-bottom: 4px; }
+
+        /* 收藏匣标签页 */
+        .text-nav span.collection {
+            display: inline-flex; align-items: center; gap: 6px;
+            font-size: 14px; letter-spacing: 0.5px; text-transform: none;
+            color: var(--red);
+        }
+        .text-nav span.collection.active { color: var(--red); border-bottom-color: var(--red); }
+        .text-nav span.collection svg { display: block; }
+        #fav-count {
+            font-family: var(--font-ui); font-style: normal; font-size: 10px; font-weight: 700;
+            background: var(--red); color: #fff; border-radius: 9px;
+            min-width: 18px; padding: 2px 5px; text-align: center; line-height: 1.2;
+        }
+        #fav-count:empty { display: none; }
+
+        .journal-list { max-width: 640px; margin: 0 auto; padding: 0 20px 60px; display: flex; flex-direction: column; gap: 40px; }
+
+        /* 通用卡片属性 */
+        .j-card { position: relative; cursor: pointer; transition: transform 0.3s ease; }
+        .j-card:active { transform: scale(0.98); }
+
+        /* 收藏按钮：描边圆钮 + 红色填充 */
+        .fav-btn {
+            width: 30px; height: 30px; border-radius: 50%; flex-shrink: 0;
+            display: inline-flex; justify-content: center; align-items: center;
+            border: 1px solid transparent; background: transparent;
+            color: var(--text-sub); cursor: pointer; user-select: none;
+            transition: background 0.2s, border-color 0.2s, color 0.2s, transform 0.2s;
+        }
+        .fav-btn:hover { border-color: var(--text-sub); color: var(--text-main); transform: scale(1.08); }
+        .fav-btn:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+        .fav-btn.active { background: var(--red); border-color: var(--red); color: #fff; }
+        .fav-btn.active:hover { transform: scale(1.08); }
+        .fav-btn svg { display: block; }
+        .fav-btn.pop { animation: favPop 0.32s cubic-bezier(0.34, 1.56, 0.64, 1); }
+        @keyframes favPop {
+            0% { transform: scale(1); } 40% { transform: scale(1.32); } 100% { transform: scale(1); }
+        }
+
+        /* 样式 A: 杂志文章 (Article) */
+        .style-article { display: flex; background: var(--surface); box-shadow: 0 10px 30px rgba(0,0,0,0.04); border-radius: 4px; overflow: hidden; border: 1px solid var(--border); }
+        .style-article .left { flex: 0 0 90px; padding: 24px 0; display: flex; flex-direction: column; align-items: center; border-right: 1px solid var(--border); background: var(--pill-bg); }
+        .style-article .day { font-family: var(--font-serif); font-size: 32px; font-weight: 700; line-height: 1; color: var(--text-main); }
+        .style-article .month { font-size: 11px; color: var(--text-sub); text-transform: uppercase; letter-spacing: 2px; margin-top: 8px; }
+        .style-article .right { flex: 1; padding: 24px; display: flex; flex-direction: column; }
+        .style-article .header { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 12px; padding: 0; }
+        .style-article .badge { background: var(--text-main); color: var(--bg); padding: 3px 8px; font-size: 10px; letter-spacing: 1px; }
+        .style-article .title { font-size: 18px; font-weight: 700; color: var(--text-main); margin-top: -2px; }
+        .style-article .text { font-family: var(--font-serif); font-size: 15px; line-height: 1.8; color: var(--text-main); opacity: 0.9; display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; }
+        .style-article .footer { display: flex; justify-content: space-between; align-items: flex-end; margin-top: 16px; padding-top: 16px; border-top: 1px dashed var(--border); }
+        .style-article .tags { font-size: 12px; color: var(--text-sub); font-style: italic; }
+
+        /* 样式 B: 极简短句 (Quote) */
+        .style-quote { padding: 40px 30px 30px; background: var(--surface); box-shadow: 0 15px 40px rgba(0,0,0,0.06); text-align: center; border-radius: 8px; }
+        .style-quote .quote-mark { position: absolute; top: 10px; left: 20px; font-family: var(--font-serif); font-size: 70px; color: var(--pill-bg); line-height: 1; user-select: none; }
+        .style-quote .text { font-family: var(--font-serif); font-size: 18px; line-height: 1.8; color: var(--text-main); position: relative; z-index: 2; font-weight: 500; white-space: pre-wrap; margin-bottom: 24px; }
+        .style-quote .footer { display: flex; justify-content: space-between; align-items: center; gap: 12px; font-size: 11px; color: var(--text-sub); text-transform: uppercase; letter-spacing: 1px; }
+
+        /* 样式 C: 信笺诗歌 (Poetry) */
+        .style-poetry { padding: 50px 30px; background: var(--surface); border: 1px solid var(--text-main); text-align: center; }
+        .style-poetry .title { font-family: var(--font-serif); font-size: 20px; font-style: italic; margin-bottom: 10px; color: var(--text-main); }
+        .style-poetry .subtitle { font-size: 10px; color: var(--text-sub); letter-spacing: 3px; text-transform: uppercase; margin-bottom: 30px; }
+        .style-poetry .subtitle::before, .style-poetry .subtitle::after { content: " — "; color: var(--border); }
+        .style-poetry .text { font-family: var(--font-serif); font-size: 16px; line-height: 2.2; color: var(--text-main); white-space: pre-wrap; display: -webkit-box; -webkit-line-clamp: 6; -webkit-box-orient: vertical; overflow: hidden; }
+        .style-poetry .footer { margin-top: 30px; display: flex; justify-content: center; gap: 20px; align-items: center; }
+
+        @media (max-width: 600px) {
+            .style-article { flex-direction: column; }
+            .style-article .left { flex-direction: row; padding: 12px 20px; border-right: none; border-bottom: 1px solid var(--border); align-items: baseline; gap: 8px; }
+            .style-article .day { font-size: 20px; }
+            .style-article .month { margin-top: 0; }
+        }
+
+        /* =========================================================
+           时间轴 Timeline
+           ========================================================= */
+        .timeline { max-width: 680px; margin: 0 auto; padding: 0 20px 80px; }
+        .tl-month { margin-bottom: 34px; }
+        .tl-month-head {
+            display: flex; align-items: baseline; gap: 10px; margin-bottom: 14px;
+            padding: 8px 0; border-bottom: 1px solid var(--border);
+            position: sticky; top: 0; background: var(--bg); z-index: 5;
+        }
+        .tl-m { font-family: var(--font-serif); font-size: 22px; font-weight: 700; line-height: 1; }
+        .tl-y { font-size: 11px; letter-spacing: 2px; color: var(--text-sub); }
+        .tl-count { margin-left: auto; font-size: 11px; color: var(--text-sub); }
+        .tl-items { display: flex; flex-direction: column; gap: 12px; }
+
+        .tl-photos { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; }
+        @media (min-width: 600px) { .tl-photos { grid-template-columns: repeat(6, 1fr); } }
+        .tl-photo { position: relative; aspect-ratio: 1/1; border-radius: 6px; overflow: hidden; background: var(--pill-bg); cursor: pointer; }
+        .tl-photo img { width: 100%; height: 100%; object-fit: cover; display: block; }
+        .tl-photo .tl-day { position: absolute; left: 5px; bottom: 3px; font-size: 10px; font-weight: 700; color: #fff; text-shadow: 0 1px 3px rgba(0,0,0,0.7); }
+
+        .tl-text {
+            display: flex; gap: 14px; align-items: flex-start; cursor: pointer;
+            background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 14px 16px;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .tl-text:hover { transform: translateX(2px); box-shadow: 0 6px 18px rgba(0,0,0,0.05); }
+        .tl-date { flex: 0 0 32px; text-align: center; }
+        .tl-date .d { font-family: var(--font-serif); font-size: 19px; font-weight: 700; line-height: 1; }
+        .tl-date .w { font-size: 9px; color: var(--text-sub); letter-spacing: 1px; margin-top: 3px; }
+        .tl-body { flex: 1; min-width: 0; }
+        .tl-cat { font-size: 9px; letter-spacing: 1px; padding: 2px 6px; border-radius: 4px; background: var(--pill-bg); color: var(--text-sub); }
+        .tl-title { font-size: 15px; font-weight: 600; margin: 7px 0 4px; }
+        .tl-excerpt { font-family: var(--font-serif); font-size: 13px; color: var(--text-sub); line-height: 1.6; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+        .tl-fav { color: var(--red); font-size: 11px; margin-left: 6px; }
+
+        /* 那年今日 */
+        .tl-onthisday { max-width: 680px; margin: 0 auto 28px; padding: 0 20px; display: none; }
+        .tl-onthisday.active { display: block; }
+        .otd-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 16px; }
+        .otd-head { display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 700; letter-spacing: 1px; margin-bottom: 12px; }
+        .otd-head .sub { font-weight: 500; color: var(--text-sub); letter-spacing: 0; }
+        .otd-strip { display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; padding-bottom: 2px; }
+        .otd-strip::-webkit-scrollbar { display: none; }
+        .otd-thumb { flex: 0 0 64px; height: 64px; border-radius: 8px; overflow: hidden; cursor: pointer; position: relative; background: var(--pill-bg); }
+        .otd-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+        .otd-thumb .y { position: absolute; bottom: 0; left: 0; right: 0; background: rgba(0,0,0,0.55); color: #fff; font-size: 9px; text-align: center; }
+        .otd-note {
+            flex: 0 0 150px; padding: 8px 10px; border: 1px solid var(--border); border-radius: 8px;
+            font-family: var(--font-serif); font-size: 12px; line-height: 1.5; cursor: pointer; color: var(--text-main);
+            display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
+        }
+
+        /* --- 全屏日记编辑器 --- */
+        .journal-editor { position: fixed; inset: 0; background: var(--surface); z-index: 400; display: flex; flex-direction: column; transform: translateY(100%); transition: transform 0.35s cubic-bezier(0.32, 0.72, 0, 1); }
+        .journal-editor.active { transform: translateY(0); }
+        .je-topbar { display: flex; justify-content: space-between; align-items: center; padding: 16px 20px; border-bottom: 1px solid var(--border); flex-shrink: 0; }
+        .je-btn { background: none; border: none; font-size: 16px; font-weight: 500; cursor: pointer; color: var(--text-main); font-family: var(--font-ui); padding: 4px 0; }
+        .je-btn.cancel { color: var(--text-sub); }
+
+        /* 草稿提示条 */
+        .je-draft { display: none; align-items: center; gap: 12px; padding: 10px 20px; background: var(--pill-bg); font-size: 12px; color: var(--text-sub); flex-shrink: 0; }
+        .je-draft.active { display: flex; }
+        .je-draft-msg { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .je-draft-act { margin-left: auto; color: var(--red); font-weight: 600; cursor: pointer; white-space: nowrap; }
+
+        .je-style-selector { display: flex; justify-content: center; gap: 12px; padding: 20px; background: var(--bg); border-bottom: 1px solid var(--border); flex-shrink: 0; }
+        .je-style-btn { padding: 8px 16px; border: 1px solid transparent; background: transparent; font-size: 13px; color: var(--text-main); cursor: pointer; border-radius: 20px; transition: 0.2s; }
+        .je-style-btn.active { background: var(--text-main); color: var(--bg); border-color: var(--text-main); }
+
+        .je-title-input { border: none; outline: none; background: transparent; font-size: 24px; font-weight: 700; color: var(--text-main); font-family: var(--font-ui); padding: 20px 20px 8px; width: 100%; flex-shrink: 0; }
+        .je-tags-input { border: none; outline: none; background: transparent; font-size: 13px; color: var(--text-sub); font-family: var(--font-ui); padding: 0 20px 12px; width: 100%; border-bottom: 1px solid var(--border); flex-shrink: 0; }
+        .je-body-input { flex: 1; border: none; outline: none; resize: none; background: transparent; font-family: var(--font-serif); font-size: 17px; line-height: 1.8; color: var(--text-main); padding: 20px; overflow-y: auto; }
+        ::placeholder { color: var(--text-sub); opacity: 0.6; }
+
+        /* --- 全屏日记沉浸阅读器 --- */
+        .journal-reader { position: fixed; inset: 0; background: var(--surface); z-index: 400; display: flex; flex-direction: column; transform: translateY(100%); transition: transform 0.35s cubic-bezier(0.32, 0.72, 0, 1); overflow-y: auto; }
+        .journal-reader.active { transform: translateY(0); }
+        .jr-topbar { display: flex; justify-content: space-between; align-items: center; padding: 16px 20px; position: sticky; top: 0; background: var(--surface); border-bottom: 1px solid var(--border); z-index: 10; }
+        .jr-actions { display: flex; gap: 16px; }
+        .jr-btn { background: none; border: none; font-size: 15px; font-weight: 500; cursor: pointer; color: var(--text-main); font-family: var(--font-ui); }
+        .jr-btn.danger { color: var(--red); }
+
+        .jr-content { padding: 40px 24px 80px; max-width: 640px; margin: 0 auto; width: 100%; }
+        .jr-content.Article .jr-title { font-size: 28px; font-weight: 700; margin-bottom: 20px; }
+        .jr-content.Article .jr-meta { font-size: 12px; color: var(--text-sub); margin-bottom: 30px; padding-bottom: 20px; border-bottom: 1px solid var(--border); }
+
+        .jr-content.Quote { text-align: center; padding-top: 80px; }
+        .jr-content.Quote .jr-title { display: none; }
+        .jr-content.Quote .jr-meta { font-size: 12px; color: var(--text-sub); margin-top: 40px; }
+        .jr-content.Quote .jr-body { font-size: 22px; line-height: 2; font-weight: 500; }
+
+        .jr-content.Poetry { text-align: center; padding-top: 60px; }
+        .jr-content.Poetry .jr-title { font-size: 24px; font-family: var(--font-serif); font-style: italic; margin-bottom: 10px; }
+        .jr-content.Poetry .jr-meta { font-size: 10px; color: var(--text-sub); letter-spacing: 3px; text-transform: uppercase; margin-bottom: 40px; }
+        .jr-content.Poetry .jr-meta::before, .jr-content.Poetry .jr-meta::after { content: " — "; color: var(--border); }
+        .jr-content.Poetry .jr-body { font-size: 18px; line-height: 2.2; }
+
+        .jr-body { font-family: var(--font-serif); font-size: 17px; line-height: 1.85; white-space: pre-wrap; color: var(--text-main); }
+
+        /* --- 迁移进度条 --- */
+        .migrate-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 9999; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 16px; color: #fff; }
+        .migrate-overlay .bar-bg { width: 240px; height: 6px; background: rgba(255,255,255,0.2); border-radius: 3px; overflow: hidden; }
+        .migrate-overlay .bar-fill { height: 100%; background: #fff; border-radius: 3px; transition: width 0.2s; }
+
+        /* --- 多选模式 --- */
+        .item .sel-mark {
+            position: absolute; top: 6px; right: 6px; width: 22px; height: 22px; border-radius: 11px;
+            border: 2px solid #fff; background: rgba(0,0,0,0.25); display: none;
+            justify-content: center; align-items: center; color: transparent; font-size: 12px; font-weight: 700;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.3); pointer-events: none;
+        }
+        .gallery.selecting .item { cursor: pointer; }
+        .gallery.selecting .item .sel-mark { display: flex; }
+        .item.selected .sel-mark { background: var(--blue); color: #fff; }
+        .item.selected img { transform: scale(0.88); border-radius: 6px; }
+
+        body.selecting .bottom-nav { opacity: 0; pointer-events: none; }
+        .select-bar {
+            position: fixed; bottom: 30px; left: 50%; transform: translate(-50%, 150%);
+            background: rgba(255,255,255,0.75); backdrop-filter: blur(25px); -webkit-backdrop-filter: blur(25px);
+            display: flex; align-items: center; gap: 2px; padding: 6px; border-radius: 30px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.08); border: 0.5px solid rgba(255,255,255,0.2);
+            z-index: 60; opacity: 0; pointer-events: none; transition: 0.3s; max-width: calc(100vw - 24px);
+        }
+        @media (prefers-color-scheme: dark) { .select-bar { background: rgba(28,28,30,0.75); border-color: rgba(255,255,255,0.1); } }
+        .select-bar.active { transform: translate(-50%, 0); opacity: 1; pointer-events: auto; }
+        .sb-count { font-size: 13px; color: var(--text-sub); padding: 0 10px; white-space: nowrap; }
+        .sb-btn { padding: 10px 14px; font-size: 14px; font-weight: 600; color: var(--text-main); cursor: pointer; border-radius: 20px; white-space: nowrap; transition: 0.2s; }
+        .sb-btn:hover { background: var(--pill-bg); }
+        .sb-btn.danger { color: var(--red); }
+        .sb-btn.disabled { opacity: 0.35; pointer-events: none; }
+        
+                /* --- 设置与多图库页 --- */
+        .settings-modal { position: fixed; inset: 0; background: var(--surface); z-index: 500; display: flex; flex-direction: column; transform: translateY(100%); transition: transform 0.35s cubic-bezier(0.32, 0.72, 0, 1); overflow-y: auto; }
+        .settings-modal.active { transform: translateY(0); }
+        .set-header { padding: 16px 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); position: sticky; top: 0; background: var(--surface); z-index: 10; }
+        .set-title { font-size: 20px; font-weight: 700; }
+        .set-close { font-size: 15px; font-weight: 600; cursor: pointer; color: var(--blue); }
+        .set-content { padding: 20px; max-width: 600px; margin: 0 auto; width: 100%; }
+        .set-group { margin-bottom: 30px; }
+        .set-group-title { font-size: 13px; font-weight: 600; color: var(--text-sub); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px; }
+        .set-card { background: var(--bg); border-radius: 12px; overflow: hidden; }
+        .set-item { display: flex; justify-content: space-between; align-items: center; padding: 16px; border-bottom: 1px solid var(--border); }
+        .set-item:last-child { border-bottom: none; }
+        .set-label { font-size: 15px; font-weight: 500; }
+        .set-sub { font-size: 12px; color: var(--text-sub); margin-top: 4px; }
+        .set-action { font-size: 14px; font-weight: 600; color: var(--blue); cursor: pointer; padding: 4px 8px; background: rgba(0,122,255,0.1); border-radius: 6px; }
+        .set-action.danger { color: var(--red); background: rgba(255,59,48,0.1); }
+        .set-select { background: transparent; border: none; font-size: 14px; color: var(--blue); font-weight: 600; outline: none; text-align: right; direction: rtl; }
+    </style>
+</head>
+<body>
+
+<!-- 侧边栏遮罩 -->
+<div class="sidebar-overlay" id="s-overlay" onclick="toggleSidebar(false)"></div>
+
+<!-- 侧边栏 -->
+<div class="sidebar" id="sidebar">
+    <div class="s-header">
+        <div class="s-title">Tags</div>
+        <div class="s-close" onclick="toggleSidebar(false)">×</div>
+    </div>
+    <div class="s-section">
+        <div class="s-section-title">Search Tags</div>
+        <input id="tag-search-input" type="text" placeholder="# Search tags..." style="width:100%;background:var(--bg);border:none;padding:10px 14px;border-radius:10px;font-size:14px;color:var(--text-main);outline:none;margin-bottom:12px;" oninput="filterSidebarTags(this.value)">
+        <div class="s-tags" id="sidebar-tags"></div>
+                <div style="margin-top: 30px; border-top: 1px solid var(--border); padding-top: 20px;">
+            <div class="s-tag" style="width: 100%; text-align: center; background: var(--text-main); color: var(--bg); display: block;" onclick="openSettings()">⚙ 设置 & 数据管理</div>
+        </div>
+    </div>
+</div>
+
+<!-- 视图 1：图库 -->
+<div id="view-gallery" class="view-section active">
+    <div class="sticky-gallery-top">
+        <div class="header">
+            <div style="display:flex; align-items:center; gap:12px; min-width:0;">
+                <div onclick="toggleSidebar(true)" style="display:flex;flex-direction:column;gap:4px;cursor:pointer;flex-shrink:0;">
+                    <span style="display:block;width:22px;height:2px;background:var(--text-main);border-radius:2px;"></span>
+                    <span style="display:block;width:22px;height:2px;background:var(--text-main);border-radius:2px;"></span>
+                    <span style="display:block;width:22px;height:2px;background:var(--text-main);border-radius:2px;"></span>
+                </div>
+                <h1 id="page-title">Gallery</h1>
+            </div>
+            <div class="header-actions">
+                <span class="hbtn" id="btn-rename-collection" style="display:none;" onclick="renameCollection()" role="button" tabindex="0" title="重命名合集" aria-label="重命名合集">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <path d="M4 20h4L19.5 8.5a2.1 2.1 0 0 0-3-3L5 17v3z"/><path d="M14.5 6.5 17.5 9.5"/>
+                    </svg>
+                </span>
+                <span class="hbtn danger" id="btn-del-collection" style="display:none;" onclick="deleteCollection()" role="button" tabindex="0" title="删除合集" aria-label="删除合集">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <path d="M4 7h16"/><path d="M9 7V5h6v2"/><path d="M6 7l1 13h10l1-13"/><path d="M10 11v6M14 11v6"/>
+                    </svg>
+                </span>
+                <span class="hbtn" id="btn-select" onclick="toggleSelectMode()" role="button" tabindex="0" title="多选" aria-label="多选">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <path d="M20 6 9 17l-5-5"/>
+                    </svg>
+                </span>
+            </div>
+        </div>
+        <div class="collection-scroll" id="collection-tabs"></div>
+    </div>
+
+    <div class="gallery-wrapper">
+        <div class="gallery-container">
+            <div class="gallery" id="gallery"></div>
+        </div>
+    </div>
+</div>
+
+<!-- 视图 2：时间轴 -->
+<div id="view-timeline" class="view-section">
+    <div class="header">
+        <h1>Timeline</h1>
+    </div>
+    <div class="text-nav" id="timeline-tabs">
+        <span class="active" onclick="switchTimelineFilter('all', event)">全部</span>
+        <span onclick="switchTimelineFilter('photo', event)">照片</span>
+        <span onclick="switchTimelineFilter('text', event)">文字</span>
+    </div>
+    <div class="tl-onthisday" id="onthisday"></div>
+    <div class="timeline" id="timeline"></div>
+</div>
+
+<!-- 视图 3：日记本 -->
+<div id="view-journal" class="view-section">
+    <div class="header">
+        <h1>Journal</h1>
+    </div>
+    <div class="text-nav" id="journal-tabs">
+        <span class="active" onclick="switchJournalTab('All', false, event)">全部 All</span>
+        <span onclick="switchJournalTab('Article', false, event)">文章 Article</span>
+        <span onclick="switchJournalTab('Quote', false, event)">短句 Quote</span>
+        <span onclick="switchJournalTab('Poetry', false, event)">诗歌 Poetry</span>
+        <span class="collection" onclick="switchJournalTab('Favorite', false, event)">
+            <svg viewBox="0 0 24 24" width="13" height="13" aria-hidden="true"><path d="M12 20.4 4.8 13.2a4.7 4.7 0 0 1 6.6-6.6l.6.6.6-.6a4.7 4.7 0 0 1 6.6 6.6z" fill="currentColor"/></svg>
+            收藏匣<i id="fav-count"></i>
+        </span>
+        <span onclick="openJournalTagsModal()">◆ 标签集</span>
+    </div>
+
+    <div class="journal-list" id="journal-list"></div>
+</div>
+
+<!-- 底部导航栏 -->
+<div class="bottom-nav">
+    <div class="nav-item active" id="tab-gallery" onclick="switchView('gallery')">Gallery</div>
+    <div class="nav-item" id="tab-timeline" onclick="switchView('timeline')">Timeline</div>
+    <div class="nav-add" id="nav-add" onclick="openAddModal()">+</div>
+    <div class="nav-item" id="tab-journal" onclick="switchView('journal')">Journal</div>
+</div>
+
+<!-- 多选操作栏 -->
+<div class="select-bar" id="select-bar">
+    <span class="sb-count" id="sb-count">已选 0</span>
+    <div class="sb-btn" id="sb-all" onclick="selectAllVisible()">全选</div>
+    <div class="sb-btn" id="sb-edit" onclick="openBulkEdit()">编辑</div>
+    <div class="sb-btn" id="sb-remove" onclick="bulkRemoveFromCollection()">移出合集</div>
+    <div class="sb-btn danger" id="sb-delete" onclick="bulkDelete()">删除</div>
+</div>
+
+<!-- 批量编辑弹窗 -->
+<div class="modal-overlay" id="bulk-modal" onclick="closeOnBg(event, 'bulk-modal')">
+    <div class="modal-card">
+        <div class="m-header">
+            <div id="bulk-title">批量编辑</div>
+            <button class="m-close" onclick="closeModal('bulk-modal')">×</button>
+        </div>
+        <input type="text" id="bulk-add-cols" class="input-box" placeholder="添加到合集（空格分隔）">
+        <div class="suggest-area" id="suggest-bulk-cols"></div>
+        <input type="text" id="bulk-add-tags" class="input-box" placeholder="添加标签（空格分隔）">
+        <div class="suggest-area" id="suggest-bulk-tags"></div>
+        <input type="text" id="bulk-del-tags" class="input-box" placeholder="移除标签（空格分隔）">
+        <div class="suggest-area" id="suggest-bulk-del-tags"></div>
+        <button class="btn-full" id="bulk-apply-btn" onclick="applyBulkEdit()">应用</button>
+    </div>
+</div>
+
+<!-- 图片沉浸查看器 -->
+<div class="viewer" id="viewer">
+    <div class="viewer-header">
+        <button class="viewer-btn" onclick="closeViewer()">Close</button>
+        <span id="v-title" style="color:#fff; font-size:14px; font-weight:600; opacity:0.8;"></span>
+        <button class="viewer-btn" id="v-reset-btn" style="opacity:0; pointer-events:none; transition:0.2s;">复位</button>
+    </div>
+    <div class="viewer-nav prev" onclick="navViewer(-1)">‹</div>
+    <div class="viewer-nav next" onclick="navViewer(1)">›</div>
+    <div class="viewer-img-container" id="v-container"><img id="v-img" src=""></div>
+    <div class="viewer-footer">
+        <div id="v-bound" style="margin-bottom:12px; display:none; align-items:center; gap:10px;">
+            <div class="bound-thumb" id="v-bound-thumb" onclick="switchToBound()"></div>
+            <span style="color:#aaa;font-size:12px;">Bound image · tap to view</span>
+            <span style="color:#aaa;font-size:12px;cursor:pointer;margin-left:auto;" onclick="unbindCurrent()">Unbind</span>
+        </div>
+        <div class="v-desc" id="v-desc"></div>
+        <div class="v-meta" id="v-tags"></div>
+        <div class="v-actions">
+            <div class="v-actions-left">
+                <span class="v-action-btn" onclick="openImageForm(true)">Edit</span>
+                <span class="v-action-btn" onclick="openBindPicker()">Bind</span>
+                <a id="v-download" class="v-action-btn" download="image.jpg">Save</a>
+            </div>
+            <span class="v-action-btn danger" onclick="deleteImage()">Delete</span>
+        </div>
+    </div>
+</div>
+
+<!-- 图片表单弹窗 -->
+<div class="modal-overlay" id="image-modal" onclick="closeOnBg(event, 'image-modal')">
+    <div class="modal-card">
+        <div class="m-header">
+            <div id="img-form-title">New Photo</div>
+            <button class="m-close" onclick="closeModal('image-modal')">×</button>
+        </div>
+        <input type="file" id="file-input" accept="image/*" multiple style="display: none;" onchange="handleFile(event)">
+        <div class="upload-area" id="upload-box" onclick="document.getElementById('file-input').click()">
+            <span id="upload-txt">+ Select Image</span>
+            <img id="upload-preview" src="">
+        </div>
+        <div class="batch-toolbar" id="batch-toolbar">
+            <span id="batch-hint">点选缩略图可单独设置</span>
+            <span style="display:flex; gap:12px;">
+                <span class="act" onclick="selectAllBatch()">全选</span>
+                <span class="act" onclick="openPerItemForm()">单独设置</span>
+                <span style="cursor:pointer;" onclick="clearBatchSelection()">取消</span>
+            </span>
+        </div>
+        <div id="batch-preview" style="display:none; gap:6px; flex-wrap:wrap; margin-bottom:12px;"></div>
+        <input type="text" id="f-desc" class="input-box" placeholder="Description (Optional)">
+        <input type="text" id="f-collections" class="input-box" placeholder="Collections (Space separated)">
+        <div class="suggest-area" id="suggest-collections"></div>
+        <input type="text" id="f-tags" class="input-box" placeholder="Tags (Space separated)">
+        <div class="suggest-area" id="suggest-tags"></div>
+        <button class="btn-full" onclick="submitImageForm()">Save Photo</button>
+    </div>
+</div>
+
+<!-- 单张/多张单独设置 -->
+<div class="modal-overlay" id="batch-item-modal" style="z-index:320;" onclick="closeOnBg(event, 'batch-item-modal')">
+    <div class="modal-card">
+        <div class="m-header">
+            <div id="bi-title">单独设置</div>
+            <button class="m-close" onclick="closeModal('batch-item-modal')">×</button>
+        </div>
+        <div id="bi-thumbs" style="display:flex; gap:6px; flex-wrap:wrap; margin-bottom:16px;"></div>
+        <input type="text" id="bi-desc" class="input-box" placeholder="Description（留空则跟随统一设置）">
+        <input type="text" id="bi-collections" class="input-box" placeholder="Collections（留空则跟随统一设置）">
+        <div class="suggest-area" id="suggest-bi-collections"></div>
+        <input type="text" id="bi-tags" class="input-box" placeholder="Tags（留空则跟随统一设置）">
+        <div class="suggest-area" id="suggest-bi-tags"></div>
+        <button class="btn-full" onclick="applyPerItemMeta()">应用到所选</button>
+        <button class="btn-full" style="background:var(--pill-bg); color:var(--text-main); margin-top:8px;" onclick="clearPerItemMeta()">恢复默认</button>
+    </div>
+</div>
+
+<!-- 全屏日记编辑器 -->
+<div class="journal-editor" id="journal-editor">
+    <div class="je-topbar">
+        <button class="je-btn cancel" onclick="closeJournalEditor()">取消</button>
+        <button class="je-btn" onclick="submitJournalForm()">完成</button>
+    </div>
+    <div class="je-draft" id="je-draft">
+        <span class="je-draft-msg" id="je-draft-msg"></span>
+        <span class="je-draft-act" onclick="discardDraft()">丢弃草稿</span>
+    </div>
+    <div class="je-style-selector">
+        <button class="je-style-btn active" id="btn-cat-Article" onclick="selectJCategory('Article')">文章 Article</button>
+        <button class="je-style-btn" id="btn-cat-Quote" onclick="selectJCategory('Quote')">短句 Quote</button>
+        <button class="je-style-btn" id="btn-cat-Poetry" onclick="selectJCategory('Poetry')">诗歌 Poetry</button>
+    </div>
+    <input type="text" class="je-title-input" id="je-title" placeholder="标题 (短句可不填)">
+    <input type="text" class="je-tags-input" id="je-tags" placeholder="标签（空格分隔，如 #深夜 #随笔）">
+    <textarea class="je-body-input" id="je-body" placeholder="写下些什么..."></textarea>
+</div>
+
+<!-- 全屏日记阅读器 -->
+<div class="journal-reader" id="journal-reader">
+    <div class="jr-topbar">
+        <button class="jr-btn" onclick="closeJournalReader()">‹ 返回</button>
+        <div class="jr-actions">
+            <button class="jr-btn" onclick="editFromReader()">编辑</button>
+            <button class="jr-btn danger" onclick="deleteFromReader()">删除</button>
+        </div>
+    </div>
+    <div class="jr-content" id="jr-content">
+        <div class="jr-title" id="jr-title"></div>
+        <div class="jr-meta" id="jr-meta"></div>
+        <div class="jr-body" id="jr-body"></div>
+    </div>
+</div>
+
+<!-- 绑定选择器 -->
+<div class="bind-picker" id="bind-picker">
+    <div style="display:flex;justify-content:space-between;align-items:center;">
+        <span style="color:#fff;font-size:18px;font-weight:600;">Select to Bind</span>
+        <span style="color:#aaa;font-size:24px;cursor:pointer;" onclick="closeBindPicker()">×</span>
+    </div>
+    <div class="bind-picker-grid" id="bind-picker-grid"></div>
+</div>
+
+<!-- 文字专属标签弹窗 -->
+<div class="modal-overlay" id="journal-tag-modal" onclick="closeOnBg(event, 'journal-tag-modal')">
+    <div class="modal-card">
+        <div class="m-header">
+            <div>文字标签分类</div>
+            <button class="m-close" onclick="closeModal('journal-tag-modal')">×</button>
+        </div>
+        <div class="s-tags" id="journal-modal-tags-container"></div>
+    </div>
+</div>
+
+<!-- 设置与多图库面板 -->
+<div class="settings-modal" id="settings-modal">
+    <div class="set-header">
+        <div class="set-title">Settings</div>
+        <div class="set-close" onclick="closeSettings()">完成</div>
+    </div>
+    <div class="set-content">
+        <!-- 多图库管理 -->
+        <div class="set-group">
+            <div class="set-group-title">多图库管理 (Libraries)</div>
+            <div class="set-card">
+                <div class="set-item">
+                    <div>
+                        <div class="set-label">当前图库</div>
+                        <div class="set-sub" id="current-lib-name">ArchiveDB</div>
+                    </div>
+                    <select class="set-select" id="lib-switch-select" onchange="switchLibrary(this.value)"></select>
+                </div>
+                <div class="set-item">
+                    <div class="set-label">创建新图库</div>
+                    <div class="set-action" onclick="createNewLibrary()">+ 新建</div>
+                </div>
+                <div class="set-item">
+                    <div class="set-label" style="color: var(--red);">删除当前图库</div>
+                    <div class="set-action danger" onclick="deleteCurrentLibrary()">删除</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 导入与导出 -->
+        <div class="set-group">
+            <div class="set-group-title">数据备份 (Export / Import)</div>
+            <div class="set-card">
+                <div class="set-item">
+                    <div>
+                        <div class="set-label">导出当前图库全量数据</div>
+                        <div class="set-sub">包含所有照片、文字和标签</div>
+                    </div>
+                    <div class="set-action" onclick="exportData('all')">导出</div>
+                </div>
+                <div class="set-item">
+                    <div>
+                        <div class="set-label">仅导出指定合集</div>
+                        <select class="set-select" id="export-col-select" style="margin-top: 6px; direction: ltr; text-align: left;"></select>
+                    </div>
+                    <div class="set-action" onclick="exportData('collection')">导出</div>
+                </div>
+                <div class="set-item">
+                    <div>
+                        <div class="set-label">导入备份数据</div>
+                        <div class="set-sub">将 JSON 数据合并到当前图库</div>
+                    </div>
+                    <div class="set-action" onclick="document.getElementById('import-input').click()">导入</div>
+                    <input type="file" id="import-input" accept=".json" style="display:none" onchange="importData(event)">
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // --- IndexedDB ---
+    let currentLibrary = localStorage.getItem('current_library') || 'ArchiveDB';
+    let libraryList = JSON.parse(localStorage.getItem('library_list') || '["ArchiveDB"]');
+    const STORE_MEDIA = 'media';
+    const STORE_JOURNAL = 'journal';
+    let db;
+
+    function initDB() {
+        return new Promise((resolve) => {
+            if (db) { db.close(); db = null; } // 切换图库前先关掉旧的
+            const req = indexedDB.open(currentLibrary, 3);
+            req.onsuccess = e => { db = e.target.result; resolve(); };
+            req.onupgradeneeded = e => {
+                const db = e.target.result;
+                if (!db.objectStoreNames.contains(STORE_MEDIA)) db.createObjectStore(STORE_MEDIA, { keyPath: 'id' });
+                if (!db.objectStoreNames.contains(STORE_JOURNAL)) db.createObjectStore(STORE_JOURNAL, { keyPath: 'id' });
+            };
+        });
+    }
+    const dbOp = (store, type, action) => new Promise(res => {
+        const tx = db.transaction([store], type);
+        const req = action(tx.objectStore(store));
+        if (req) req.onsuccess = () => res(req.result);
+        else tx.oncomplete = () => res();
+    });
+
+    // 单事务批量写入（图片）
+    function bulkTx(fn) {
+        return new Promise((res, rej) => {
+            const tx = db.transaction([STORE_MEDIA], 'readwrite');
+            fn(tx.objectStore(STORE_MEDIA));
+            tx.oncomplete = () => res();
+            tx.onerror = () => rej(tx.error);
+            tx.onabort = () => rej(tx.error);
+        });
+    }
+
+    // --- 状态 ---
+    let currentMode = 'gallery';
+    let allImages = [];
+    let allJournals = [];
+
+    // 图库状态
+    let activeCollection = 'All';
+    let currentImg = null;
+    let tempBase64 = "";
+    let existingCollections = new Set();
+    let existingTags = new Set();
+    let fileQueue = [];
+
+    // 文字状态
+    let activeJournalTab = 'All';
+    let currentJournalId = null;
+    let editorCategory = 'Article';
+    let currentJournal = null;
+
+    // 时间轴状态
+    let timelineFilter = 'all';
+
+    // 多选状态
+    let selectMode = false;
+    let selectedIds = new Set();
+    let activeTag = null;
+    let lastSelIdx = -1;
+    let suppressClick = false;
+
+    const MONTHS = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
+    const MONTHS_CN = ['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'];
+    const WEEKDAYS = ['SUN','MON','TUE','WED','THU','FRI','SAT'];
+    const CAT_CN = { Article: '文章', Quote: '短句', Poetry: '诗歌' };
+
+    // 防止用户内容里的 < > 破坏排版
+    function escapeHtml(s) {
+        return String(s == null ? '' : s)
+            .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+    }
+
+    function fmtClock(ts) {
+        const d = new Date(ts);
+        return `${d.getHours().toString().padStart(2,'0')}:${d.getMinutes().toString().padStart(2,'0')}`;
+    }
+
+    // ==========================================
+    // 缩略图生成
+    // ==========================================
+    const THUMB_SIZE = 200;
+
+    function generateThumbnail(dataUrl) {
+        return new Promise((resolve) => {
+            const img = new Image();
+            img.onload = () => {
+                const cvs = document.createElement('canvas');
+                const ctx = cvs.getContext('2d');
+                let w = img.width, h = img.height;
+                const size = Math.min(w, h);
+                const sx = (w - size) / 2;
+                const sy = (h - size) / 2;
+                cvs.width = THUMB_SIZE;
+                cvs.height = THUMB_SIZE;
+                ctx.drawImage(img, sx, sy, size, size, 0, 0, THUMB_SIZE, THUMB_SIZE);
+                resolve(cvs.toDataURL('image/jpeg', 0.6));
+            };
+            img.onerror = () => resolve(dataUrl);
+            img.src = dataUrl;
+        });
+    }
+
+    // --- 自动迁移 ---
+    async function migrateOldData() {
+        if (!localStorage.getItem('tags_migrated_v1')) {
+            let images = await dbOp(STORE_MEDIA, 'readonly', s => s.getAll());
+            for (let img of images) {
+                let needsUpdate = false;
+                if (img.collections) {
+                    let cleanCols = img.collections.map(c => c.trim()).filter(Boolean);
+                    if (cleanCols.join() !== img.collections.join()) { img.collections = cleanCols; needsUpdate = true; }
+                }
+                if (img.tags) {
+                    let cleanTags = img.tags.map(t => t.replace(/^#/, '').trim()).filter(Boolean);
+                    if (cleanTags.join() !== img.tags.join()) { img.tags = cleanTags; needsUpdate = true; }
+                }
+                if (needsUpdate) await dbOp(STORE_MEDIA, 'readwrite', s => s.put(img));
+            }
+
+            let journals = await dbOp(STORE_JOURNAL, 'readonly', s => s.getAll());
+            for (let j of journals) {
+                if (j.tags) {
+                    let cleanTags = j.tags.map(t => t.replace(/^#/, '').trim()).filter(Boolean);
+                    if (cleanTags.join() !== j.tags.join()) {
+                        j.tags = cleanTags;
+                        await dbOp(STORE_JOURNAL, 'readwrite', s => s.put(j));
+                    }
+                }
+            }
+            localStorage.setItem('tags_migrated_v1', 'true');
+        }
+
+        if (!localStorage.getItem('thumbs_migrated_v1')) {
+            let images = await dbOp(STORE_MEDIA, 'readonly', s => s.getAll());
+            let needThumb = images.filter(img => !img.thumbDataUrl && img.dataUrl);
+            if (needThumb.length > 0) {
+                const overlay = document.createElement('div');
+                overlay.className = 'migrate-overlay';
+                overlay.innerHTML = `
+                    <div style="font-size:15px;font-weight:600;">正在生成缩略图，请稍候...</div>
+                    <div class="bar-bg"><div class="bar-fill" id="migrate-bar" style="width:0%"></div></div>
+                    <div id="migrate-text" style="font-size:12px;opacity:0.7;">0 / ${needThumb.length}</div>
+                `;
+                document.body.appendChild(overlay);
+                const bar = document.getElementById('migrate-bar');
+                const txt = document.getElementById('migrate-text');
+
+                for (let i = 0; i < needThumb.length; i++) {
+                    const img = needThumb[i];
+                    img.thumbDataUrl = await generateThumbnail(img.dataUrl);
+                    await dbOp(STORE_MEDIA, 'readwrite', s => s.put(img));
+                    bar.style.width = Math.round(((i + 1) / needThumb.length) * 100) + '%';
+                    txt.innerText = `${i + 1} / ${needThumb.length}`;
+                }
+                overlay.remove();
+            }
+            localStorage.setItem('thumbs_migrated_v1', 'true');
+        }
+    }
+
+    // 页面加载
+    window.onload = async () => {
+        await initDB();
+        await migrateOldData();
+        await loadData();
+    };
+
+    function switchView(mode) {
+        currentMode = mode;
+        if (selectMode && mode !== 'gallery') toggleSelectMode(false);
+        ['gallery', 'timeline', 'journal'].forEach(m => {
+            document.getElementById(`view-${m}`).classList.remove('active');
+            document.getElementById(`tab-${m}`).classList.remove('active');
+        });
+        document.getElementById(`view-${mode}`).classList.add('active');
+        document.getElementById(`tab-${mode}`).classList.add('active');
+        document.getElementById('nav-add').style.display = mode === 'timeline' ? 'none' : 'flex';
+        if (mode === 'timeline') renderTimeline();
+    }
+
+    function openAddModal() {
+        if (currentMode === 'gallery') openImageForm();
+        else if (currentMode === 'journal') openJournalForm();
+    }
+
+    async function loadData() {
+        let rawImages = await dbOp(STORE_MEDIA, 'readonly', s => s.getAll());
+        existingCollections.clear(); existingTags.clear();
+        allImages = rawImages.map(img => {
+            if (img.collection && !img.collections) img.collections = [img.collection];
+            if (!img.collections || img.collections.length === 0) img.collections = ['Uncategorized'];
+            img.collections.forEach(c => existingCollections.add(c.trim()));
+            if (img.tags) {
+                img.tags = img.tags.map(t => t.replace(/^#/, '').trim()).filter(t => t);
+                img.tags.forEach(t => existingTags.add(t));
+            }
+            return img;
+        });
+        allImages.sort((a, b) => (b.order || b.time) - (a.order || a.time));
+
+        allJournals = await dbOp(STORE_JOURNAL, 'readonly', s => s.getAll());
+        allJournals.sort((a, b) => b.time - a.time);
+
+        // 筛选条件失效时回退，并清理已不存在的选中项
+        if (activeCollection !== 'All' && !existingCollections.has(activeCollection)) activeCollection = 'All';
+        if (activeTag && !existingTags.has(activeTag)) activeTag = null;
+        selectedIds.forEach(id => { if (!allImages.some(i => i.id === id)) selectedIds.delete(id); });
+
+        updateGalleryTitle();
+        renderGalleryTabs();
+        renderGallery();
+        renderJournal();
+        renderTimeline();
+    }
+
+    // ==========================================
+    // 时间轴 Timeline
+    // ==========================================
+
+    function switchTimelineFilter(f, e) {
+        timelineFilter = f;
+        const tabs = document.getElementById('timeline-tabs').children;
+        for (let t of tabs) t.classList.remove('active');
+        (e || window.event).target.closest('#timeline-tabs > span')?.classList.add('active');
+        renderTimeline();
+    }
+
+    function buildTimelineItems() {
+        const items = [];
+        if (timelineFilter !== 'text') {
+            allImages.forEach(i => items.push({ type: 'photo', time: i.time || Number(i.id) || 0, data: i }));
+        }
+        if (timelineFilter !== 'photo') {
+            allJournals.forEach(j => items.push({ type: 'text', time: j.time || 0, data: j }));
+        }
+        items.sort((a, b) => b.time - a.time);
+        return items;
+    }
+
+    function renderTimeline() {
+        const wrap = document.getElementById('timeline');
+        if (!wrap) return;
+        wrap.innerHTML = '';
+        renderOnThisDay();
+
+        const items = buildTimelineItems();
+        if (items.length === 0) {
+            wrap.innerHTML = '<div class="empty-state">这里还空着，先去添加照片或写点文字吧</div>';
+            return;
+        }
+
+        // 供查看器左右滑动使用的照片序列
+        const tlPhotos = items.filter(i => i.type === 'photo').map(i => i.data);
+
+        // 按年月分组
+        const groups = [];
+        let cur = null;
+        items.forEach(it => {
+            const d = new Date(it.time);
+            const key = `${d.getFullYear()}-${d.getMonth()}`;
+            if (!cur || cur.key !== key) {
+                cur = { key, year: d.getFullYear(), month: d.getMonth(), items: [] };
+                groups.push(cur);
+            }
+            cur.items.push(it);
+        });
+
+        groups.forEach(g => {
+            const sec = document.createElement('div');
+            sec.className = 'tl-month';
+
+            const head = document.createElement('div');
+            head.className = 'tl-month-head';
+            head.innerHTML = `
+                <span class="tl-m">${MONTHS_CN[g.month]}</span>
+                <span class="tl-y">${g.year}</span>
+                <span class="tl-count">${g.items.length} 条</span>
+            `;
+            sec.appendChild(head);
+
+            const box = document.createElement('div');
+            box.className = 'tl-items';
+            sec.appendChild(box);
+
+            let photoRun = null;
+            g.items.forEach(it => {
+                const d = new Date(it.time);
+                if (it.type === 'photo') {
+                    if (!photoRun) {
+                        photoRun = document.createElement('div');
+                        photoRun.className = 'tl-photos';
+                        box.appendChild(photoRun);
+                    }
+                    const cell = document.createElement('div');
+                    cell.className = 'tl-photo';
+                    cell.innerHTML = `<img src="${it.data.thumbDataUrl || it.data.dataUrl}" loading="lazy"><span class="tl-day">${d.getDate()}</span>`;
+                    cell.onclick = () => openViewer(it.data, tlPhotos);
+                    photoRun.appendChild(cell);
+                } else {
+                    photoRun = null;
+                    const j = it.data;
+                    const cat = j.category || 'Article';
+                    const row = document.createElement('div');
+                    row.className = 'tl-text';
+                    row.onclick = () => openJournalReader(j);
+                    const title = cat === 'Quote'
+                        ? ''
+                        : `<div class="tl-title">${escapeHtml(j.title || '无题')}${j.isFavorite ? '<span class="tl-fav">♥</span>' : ''}</div>`;
+                    row.innerHTML = `
+                        <div class="tl-date">
+                            <div class="d">${d.getDate()}</div>
+                            <div class="w">${WEEKDAYS[d.getDay()]}</div>
+                        </div>
+                        <div class="tl-body">
+                            <span class="tl-cat">${CAT_CN[cat] || cat}</span>
+                            ${title}
+                            <div class="tl-excerpt" style="${cat === 'Quote' ? 'margin-top:7px;color:var(--text-main);' : ''}">${escapeHtml(j.text || '')}</div>
+                        </div>
+                    `;
+                    box.appendChild(row);
+                }
+            });
+
+            wrap.appendChild(sec);
+        });
+    }
+
+    function renderOnThisDay() {
+        const box = document.getElementById('onthisday');
+        if (!box) return;
+        const now = new Date();
+        const m = now.getMonth(), day = now.getDate(), y = now.getFullYear();
+
+        const hit = t => {
+            const d = new Date(t);
+            return d.getMonth() === m && d.getDate() === day && d.getFullYear() !== y;
+        };
+        const photos = allImages.filter(i => hit(i.time || Number(i.id) || 0));
+        const texts = allJournals.filter(j => hit(j.time || 0));
+
+        if (photos.length === 0 && texts.length === 0) {
+            box.classList.remove('active');
+            box.innerHTML = '';
+            return;
+        }
+
+        const strip = document.createElement('div');
+        strip.className = 'otd-strip';
+
+        photos.forEach(img => {
+            const d = new Date(img.time || Number(img.id));
+            const el = document.createElement('div');
+            el.className = 'otd-thumb';
+            el.innerHTML = `<img src="${img.thumbDataUrl || img.dataUrl}" loading="lazy"><span class="y">${d.getFullYear()}</span>`;
+            el.onclick = () => openViewer(img, photos);
+            strip.appendChild(el);
+        });
+
+        texts.forEach(j => {
+            const d = new Date(j.time);
+            const el = document.createElement('div');
+            el.className = 'otd-note';
+            el.innerHTML = `<b style="font-family:var(--font-ui);font-size:10px;color:var(--text-sub);">${d.getFullYear()}</b><br>${escapeHtml(j.title || j.text || '')}`;
+            el.onclick = () => openJournalReader(j);
+            strip.appendChild(el);
+        });
+
+        box.innerHTML = `
+            <div class="otd-card">
+                <div class="otd-head">
+                    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+                    那年今日 <span class="sub">${MONTHS[m]} ${day} · ${photos.length + texts.length} 条</span>
+                </div>
+            </div>
+        `;
+        box.querySelector('.otd-card').appendChild(strip);
+        box.classList.add('active');
+    }
+
+    // ==========================================
+    // Journal (文字) 逻辑区
+    // ==========================================
+
+    function switchJournalTab(tabName, isTag = false, e) {
+        activeJournalTab = tabName;
+        const tabs = document.getElementById('journal-tabs').children;
+        for (let t of tabs) t.classList.remove('active');
+
+        if (isTag) {
+            Array.from(tabs).find(t => t.innerText.trim() === `#${tabName}`)?.classList.add('active');
+        } else {
+            (e || window.event).target.closest('#journal-tabs > span')?.classList.add('active');
+        }
+        renderJournal();
+    }
+
+    function formatDateParts(ts) {
+        const d = new Date(ts);
+        return {
+            day: d.getDate().toString().padStart(2, '0'),
+            month: MONTHS[d.getMonth()],
+            year: d.getFullYear(),
+            full: `${MONTHS[d.getMonth()]} ${d.getDate().toString().padStart(2, '0')}, ${d.getFullYear()}`
+        };
+    }
+
+    function favIcon(active) {
+        return `<svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true" focusable="false">
+            <path d="M12 20.4 4.8 13.2a4.7 4.7 0 0 1 6.6-6.6l.6.6.6-.6a4.7 4.7 0 0 1 6.6 6.6z"
+                  fill="${active ? 'currentColor' : 'none'}"
+                  stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/>
+        </svg>`;
+    }
+
+    function favBtnHtml(j) {
+        const on = !!j.isFavorite;
+        return `<div class="fav-btn ${on ? 'active' : ''}" role="button" tabindex="0"
+            aria-pressed="${on}" aria-label="${on ? '取消收藏' : '收藏'}"
+            onclick="toggleFavorite('${j.id}', event)">${favIcon(on)}</div>`;
+    }
+
+    document.getElementById('journal-list').addEventListener('keydown', e => {
+        const btn = e.target.closest('.fav-btn');
+        if (btn && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); btn.click(); }
+    });
+
+    function renderJournal() {
+        const list = document.getElementById('journal-list');
+        list.innerHTML = '';
+        document.getElementById('fav-count').innerText = allJournals.filter(j => j.isFavorite).length || '';
+
+        let filtered = allJournals;
+        if (activeJournalTab === 'Favorite') {
+            filtered = allJournals.filter(j => j.isFavorite);
+        } else if (['All', 'Article', 'Quote', 'Poetry'].includes(activeJournalTab)) {
+            if (activeJournalTab !== 'All') {
+                filtered = allJournals.filter(j => j.category === activeJournalTab);
+            }
+        } else {
+            filtered = allJournals.filter(j => j.tags && j.tags.includes(activeJournalTab));
+        }
+
+        if (filtered.length === 0) {
+            list.innerHTML = activeJournalTab === 'Favorite'
+                ? '<div class="empty-state">收藏匣还是空的，点卡片上的心收藏喜欢的文字</div>'
+                : '<div class="empty-state">还没有文字，点下方 + 写点什么吧</div>';
+            return;
+        }
+
+        filtered.forEach(j => {
+            const date = formatDateParts(j.time);
+            const tagsHtml = escapeHtml((j.tags || []).map(t => `#${t}`).join(' '));
+            const title = escapeHtml(j.title || '无题');
+            const text = escapeHtml(j.text);
+            const cat = j.category || 'Article';
+
+            const div = document.createElement('div');
+            div.className = `j-card style-${cat.toLowerCase()}`;
+            div.onclick = () => openJournalReader(j);
+
+            if (cat === 'Article') {
+                div.innerHTML = `
+                    <div class="left">
+                        <div class="day">${date.day}</div>
+                        <div class="month">${date.month}</div>
+                    </div>
+                    <div class="right">
+                        <div class="header">
+                            <div class="badge">文章</div>
+                            <div class="title">${title}</div>
+                        </div>
+                        <div class="text">${text}</div>
+                        <div class="footer">
+                            <div class="tags">${tagsHtml}</div>
+                            ${favBtnHtml(j)}
+                        </div>
+                    </div>
+                `;
+            } else if (cat === 'Quote') {
+                div.innerHTML = `
+                    <div class="quote-mark">"</div>
+                    <div class="text">${text}</div>
+                    <div class="footer">
+                        <span>${date.full}${tagsHtml ? ' · ' + tagsHtml : ''}</span>
+                        ${favBtnHtml(j)}
+                    </div>
+                `;
+            } else if (cat === 'Poetry') {
+                div.innerHTML = `
+                    <div class="title">${title}</div>
+                    <div class="subtitle">诗歌</div>
+                    <div class="text">${text}</div>
+                    <div class="footer">
+                        ${favBtnHtml(j)}
+                        <span style="font-size: 11px; color: var(--text-sub);">${date.full}</span>
+                    </div>
+                `;
+            }
+
+            list.appendChild(div);
+        });
+    }
+
+    async function toggleFavorite(id, e) {
+        e.stopPropagation();
+        const btn = e.currentTarget;
+        const j = allJournals.find(x => x.id === id);
+        if (!j) return;
+
+        j.isFavorite = !j.isFavorite;
+        await dbOp(STORE_JOURNAL, 'readwrite', s => s.put(j));
+        document.getElementById('fav-count').innerText = allJournals.filter(x => x.isFavorite).length || '';
+
+        if (activeJournalTab === 'Favorite' && !j.isFavorite) {
+            const card = btn.closest('.j-card');
+            card.style.transition = 'opacity 0.25s, transform 0.25s';
+            card.style.opacity = '0';
+            card.style.transform = 'scale(0.96)';
+            setTimeout(renderJournal, 250);
+            return;
+        }
+
+        btn.classList.toggle('active', j.isFavorite);
+        btn.setAttribute('aria-pressed', j.isFavorite);
+        btn.setAttribute('aria-label', j.isFavorite ? '取消收藏' : '收藏');
+        btn.innerHTML = favIcon(j.isFavorite);
+        if (j.isFavorite) { btn.classList.remove('pop'); void btn.offsetWidth; btn.classList.add('pop'); }
+    }
+
+    function selectJCategory(cat) {
+        editorCategory = cat;
+        document.querySelectorAll('.je-style-btn').forEach(btn => btn.classList.remove('active'));
+        document.getElementById(`btn-cat-${cat}`).classList.add('active');
+        document.getElementById('je-title').placeholder = cat === 'Quote' ? '标题 (短句可不填)' : '标题';
+        if (document.getElementById('journal-editor').classList.contains('active')) scheduleDraftSave();
+    }
+
+    // ==========================================
+    // 草稿自动保存
+    // ==========================================
+    const DRAFT_KEY = 'journal_draft_v1';
+    let draftTimer = null;
+
+    function currentDraft() {
+        return {
+            id: currentJournalId || null,
+            category: editorCategory,
+            title: document.getElementById('je-title').value,
+            tags: document.getElementById('je-tags').value,
+            text: document.getElementById('je-body').value,
+            savedAt: Date.now()
+        };
+    }
+
+    function normTags(str) {
+        return str.trim().split(/\s+/).map(t => t.replace(/^#/, '').trim()).filter(Boolean).join(' ');
+    }
+
+    // 内容和已保存版本不同才算草稿，避免误报
+    function draftDiffersFromSaved(d) {
+        if (!d) return false;
+        if (!d.id) return !!(d.title.trim() || d.text.trim() || d.tags.trim());
+        const e = allJournals.find(j => j.id === d.id);
+        if (!e) return !!(d.title.trim() || d.text.trim() || d.tags.trim());
+        return d.title.trim() !== (e.title || '')
+            || d.text.trim() !== (e.text || '')
+            || normTags(d.tags) !== (e.tags || []).join(' ')
+            || (d.category || 'Article') !== (e.category || 'Article');
+    }
+
+    function loadDraft() {
+        try { return JSON.parse(localStorage.getItem(DRAFT_KEY)); } catch (err) { return null; }
+    }
+
+    function clearDraft() {
+        clearTimeout(draftTimer);
+        localStorage.removeItem(DRAFT_KEY);
+    }
+
+    function saveDraft() {
+        const d = currentDraft();
+        if (!draftDiffersFromSaved(d)) { localStorage.removeItem(DRAFT_KEY); hideDraftBar(); return; }
+        try {
+            localStorage.setItem(DRAFT_KEY, JSON.stringify(d));
+            showDraftBar(`草稿已自动保存 · ${fmtClock(d.savedAt)}`);
+        } catch (err) {
+            showDraftBar('草稿保存失败（存储空间不足）');
+        }
+    }
+
+    function scheduleDraftSave() {
+        clearTimeout(draftTimer);
+        draftTimer = setTimeout(saveDraft, 600);
+    }
+
+    function showDraftBar(msg) {
+        document.getElementById('je-draft-msg').innerText = msg;
+        document.getElementById('je-draft').classList.add('active');
+    }
+    function hideDraftBar() {
+        document.getElementById('je-draft').classList.remove('active');
+    }
+
+    function discardDraft() {
+        clearDraft();
+        const T = document.getElementById('je-title'), G = document.getElementById('je-tags'), B = document.getElementById('je-body');
+        if (currentJournalId) {
+            const e = allJournals.find(j => j.id === currentJournalId);
+            if (e) {
+                T.value = e.title || ''; G.value = (e.tags || []).join(' '); B.value = e.text || '';
+                selectJCategory(e.category || 'Article');
+            }
+        } else {
+            T.value = ''; G.value = ''; B.value = '';
+            selectJCategory('Article');
+        }
+        clearTimeout(draftTimer);
+        hideDraftBar();
+    }
+
+    ['je-title', 'je-tags', 'je-body'].forEach(id =>
+        document.getElementById(id).addEventListener('input', scheduleDraftSave));
+
+    document.addEventListener('visibilitychange', () => {
+        if (document.hidden && document.getElementById('journal-editor').classList.contains('active')) saveDraft();
+    });
+    window.addEventListener('pagehide', () => {
+        if (document.getElementById('journal-editor').classList.contains('active')) saveDraft();
+    });
+
+    // ==========================================
+    // 日记编辑 / 阅读
+    // ==========================================
+
+    function openJournalForm(id = null) {
+        currentJournalId = id;
+        const T = document.getElementById('je-title'), G = document.getElementById('je-tags'), B = document.getElementById('je-body');
+
+        if (id) {
+            const entry = allJournals.find(j => j.id === id);
+            T.value = entry.title || '';
+            G.value = (entry.tags || []).join(' ');
+            B.value = entry.text || '';
+            selectJCategory(entry.category || 'Article');
+        } else {
+            T.value = ''; G.value = ''; B.value = '';
+            selectJCategory('Article');
+        }
+
+        // 草稿恢复
+        hideDraftBar();
+        const d = loadDraft();
+        if (d && (d.id || null) === (id || null) && draftDiffersFromSaved(d)) {
+            T.value = d.title || ''; G.value = d.tags || ''; B.value = d.text || '';
+            selectJCategory(d.category || 'Article');
+            showDraftBar(`已恢复未完成的内容 · ${fmtClock(d.savedAt)}`);
+        }
+
+        document.getElementById('journal-editor').classList.add('active');
+        setTimeout(() => T.focus(), 350);
+    }
+
+    function closeJournalEditor() {
+        saveDraft(); // 未写完的内容留成草稿，下次打开自动恢复
+        clearTimeout(draftTimer);
+        document.getElementById('journal-editor').classList.remove('active');
+    }
+
+    async function submitJournalForm() {
+        const title = document.getElementById('je-title').value.trim();
+        const text = document.getElementById('je-body').value.trim();
+        const tagsStr = document.getElementById('je-tags').value.trim();
+
+        if (!title && !text) return;
+
+        let existing = currentJournalId ? allJournals.find(j => j.id === currentJournalId) : null;
+
+        const data = {
+            id: currentJournalId || Date.now().toString(),
+            title: title || (editorCategory === 'Quote' ? '' : '无题'),
+            text: text,
+            tags: tagsStr ? tagsStr.split(/\s+/).map(t => t.replace(/^#/, '').trim()).filter(t => t) : [],
+            time: existing ? existing.time : Date.now(),
+            category: editorCategory,
+            isFavorite: existing ? existing.isFavorite : false
+        };
+
+        await dbOp(STORE_JOURNAL, 'readwrite', s => s.put(data));
+        clearDraft();
+        hideDraftBar();
+        document.getElementById('journal-editor').classList.remove('active');
+        loadData();
+    }
+
+    function openJournalReader(j) {
+        currentJournal = j;
+        const date = formatDateParts(j.time);
+        const tagsStr = (j.tags || []).map(t => `#${t}`).join(' ');
+
+        const contentDiv = document.getElementById('jr-content');
+        contentDiv.className = `jr-content ${j.category || 'Article'}`;
+
+        document.getElementById('jr-title').innerText = j.title || '';
+        document.getElementById('jr-body').innerText = j.text || '';
+
+        const metaDiv = document.getElementById('jr-meta');
+        if (j.category === 'Poetry') {
+            metaDiv.innerText = '诗歌';
+        } else {
+            metaDiv.innerText = `${date.full}${tagsStr ? ' · ' + tagsStr : ''}`;
+        }
+
+        document.getElementById('journal-reader').classList.add('active');
+    }
+
+    function closeJournalReader() {
+        document.getElementById('journal-reader').classList.remove('active');
+        currentJournal = null;
+    }
+
+    function editFromReader() {
+        const id = currentJournal.id;
+        closeJournalReader();
+        openJournalForm(id);
+    }
+
+    function deleteFromReader() {
+        if (confirm('确认删除这篇文字？')) {
+            const id = currentJournal.id;
+            closeJournalReader();
+            dbOp(STORE_JOURNAL, 'readwrite', s => s.delete(id)).then(() => loadData());
+        }
+    }
+
+    // ==========================================
+    // 多选
+    // ==========================================
+
+    function getVisibleImages() {
+        if (activeTag) return allImages.filter(img => img.tags && img.tags.includes(activeTag));
+        return activeCollection === 'All' ? allImages : allImages.filter(img => img.collections.includes(activeCollection));
+    }
+
+    function updateGalleryTitle() {
+        document.getElementById('page-title').innerText =
+            activeTag ? '#' + activeTag : (activeCollection === 'All' ? 'Gallery' : activeCollection);
+        const showColActions = (activeCollection !== 'All' && !activeTag);
+        document.getElementById('btn-del-collection').style.display = showColActions ? '' : 'none';
+        document.getElementById('btn-rename-collection').style.display = showColActions ? '' : 'none';
+    }
+
+    function toggleSelectMode(on = !selectMode) {
+        selectMode = on;
+        if (!on) { selectedIds.clear(); lastSelIdx = -1; }
+        document.body.classList.toggle('selecting', on);
+        document.getElementById('btn-select').innerHTML = on
+            ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg>'
+            : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>';
+        document.getElementById('btn-select').title = on ? '退出多选' : '多选';
+        document.getElementById('btn-select').setAttribute('aria-label', on ? '退出多选' : '多选');
+        const gallery = document.getElementById('gallery');
+        gallery.classList.toggle('selecting', on);
+        gallery.querySelectorAll('.item').forEach(el => { el.draggable = !on && !activeTag; });
+        syncSelectionUI();
+    }
+
+    function syncSelectionUI() {
+        document.querySelectorAll('#gallery .item').forEach(el =>
+            el.classList.toggle('selected', selectedIds.has(el.dataset.id)));
+        updateSelectBar();
+    }
+
+    function updateSelectBar() {
+        document.getElementById('select-bar').classList.toggle('active', selectMode);
+        const n = selectedIds.size;
+        document.getElementById('sb-count').innerText = `已选 ${n}`;
+        const visible = getVisibleImages();
+        const allSel = visible.length > 0 && visible.every(i => selectedIds.has(i.id));
+        document.getElementById('sb-all').innerText = allSel ? '全不选' : '全选';
+        document.getElementById('sb-remove').style.display = (activeCollection !== 'All' && !activeTag) ? '' : 'none';
+        ['sb-edit', 'sb-remove', 'sb-delete'].forEach(id =>
+            document.getElementById(id).classList.toggle('disabled', n === 0));
+    }
+
+    function handleItemSelect(id, e) {
+        const list = getVisibleImages();
+        const idx = list.findIndex(i => i.id === id);
+        if (e && e.shiftKey && lastSelIdx >= 0) {
+            const [a, b] = [Math.min(lastSelIdx, idx), Math.max(lastSelIdx, idx)];
+            for (let k = a; k <= b; k++) selectedIds.add(list[k].id);
+        } else if (selectedIds.has(id)) {
+            selectedIds.delete(id);
+        } else {
+            selectedIds.add(id);
+        }
+        lastSelIdx = idx;
+        syncSelectionUI();
+    }
+
+    function attachLongPress(div, id) {
+        let timer = null;
+        const cancel = () => clearTimeout(timer);
+        div.addEventListener('touchstart', () => {
+            timer = setTimeout(() => {
+                suppressClick = true;
+                setTimeout(() => { suppressClick = false; }, 600);
+                if (!selectMode) toggleSelectMode(true);
+                selectedIds.add(id);
+                lastSelIdx = getVisibleImages().findIndex(i => i.id === id);
+                syncSelectionUI();
+                if (navigator.vibrate) navigator.vibrate(15);
+            }, 450);
+        }, { passive: true });
+        div.addEventListener('touchmove', cancel, { passive: true });
+        div.addEventListener('touchend', cancel);
+        div.addEventListener('touchcancel', cancel);
+    }
+
+    function selectAllVisible() {
+        const visible = getVisibleImages();
+        const allSel = visible.length > 0 && visible.every(i => selectedIds.has(i.id));
+        if (allSel) visible.forEach(i => selectedIds.delete(i.id));
+        else visible.forEach(i => selectedIds.add(i.id));
+        syncSelectionUI();
+    }
+
+    async function bulkDelete() {
+        const n = selectedIds.size;
+        if (!n || !confirm(`永久删除这 ${n} 张照片？`)) return;
+        const ids = new Set(selectedIds);
+        await bulkTx(s => {
+            ids.forEach(id => s.delete(id));
+            allImages.forEach(img => {
+                if (img.boundId && ids.has(img.boundId) && !ids.has(img.id)) { img.boundId = null; s.put(img); }
+            });
+        });
+        toggleSelectMode(false);
+        await loadData();
+    }
+
+    async function bulkRemoveFromCollection() {
+        if (activeCollection === 'All' || !selectedIds.size) return;
+        if (!confirm(`将 ${selectedIds.size} 张照片移出「${activeCollection}」？`)) return;
+        const changed = allImages.filter(img => selectedIds.has(img.id));
+        changed.forEach(img => {
+            img.collections = img.collections.filter(c => c !== activeCollection);
+            if (img.collections.length === 0) img.collections = ['Uncategorized'];
+        });
+        await bulkTx(s => changed.forEach(img => s.put(img)));
+        toggleSelectMode(false);
+        await loadData();
+    }
+
+    function openBulkEdit() {
+        if (!selectedIds.size) return;
+        ['bulk-add-cols', 'bulk-add-tags', 'bulk-del-tags'].forEach(id => document.getElementById(id).value = '');
+        document.getElementById('bulk-title').innerText = `批量编辑 ${selectedIds.size} 张`;
+        document.getElementById('bulk-apply-btn').innerText = `应用到 ${selectedIds.size} 张`;
+        renderSuggestionChips('collections', 'bulk-add-cols', 'suggest-bulk-cols');
+        renderSuggestionChips('tags', 'bulk-add-tags', 'suggest-bulk-tags');
+        renderSuggestionChips('tags', 'bulk-del-tags', 'suggest-bulk-del-tags');
+        document.getElementById('bulk-modal').classList.add('active');
+    }
+
+    async function applyBulkEdit() {
+        const add = parseColsTags(
+            document.getElementById('bulk-add-cols').value.trim(),
+            document.getElementById('bulk-add-tags').value.trim()
+        );
+        const del = parseColsTags('', document.getElementById('bulk-del-tags').value.trim()).tags;
+        if (!add.cols.length && !add.tags.length && !del.length) return closeModal('bulk-modal');
+
+        const changed = allImages.filter(img => selectedIds.has(img.id));
+        changed.forEach(img => {
+            if (add.cols.length) {
+                let cols = img.collections.filter(c => c !== 'Uncategorized');
+                add.cols.forEach(c => { if (!cols.includes(c)) cols.push(c); });
+                img.collections = cols;
+            }
+            let tags = (img.tags || []).filter(t => !del.includes(t));
+            add.tags.forEach(t => { if (!tags.includes(t)) tags.push(t); });
+            img.tags = tags;
+        });
+        await bulkTx(s => changed.forEach(img => s.put(img)));
+        closeModal('bulk-modal');
+        toggleSelectMode(false);
+        await loadData();
+    }
+
+    document.addEventListener('keydown', e => {
+        if (e.key === 'Escape' && selectMode && !document.querySelector('.modal-overlay.active')) toggleSelectMode(false);
+    });
+
+    // ==========================================
+    // 图库渲染
+    // ==========================================
+
+    function renderGalleryTabs() {
+        const tabs = document.getElementById('collection-tabs');
+        tabs.innerHTML = '';
+        const cArray = ['All', ...Array.from(existingCollections).sort()];
+        cArray.forEach(c => {
+            const pill = document.createElement('div');
+            pill.className = `pill ${c === activeCollection && !activeTag ? 'active' : ''}`;
+            pill.innerText = c;
+            pill.onclick = () => {
+                activeCollection = c; activeTag = null;
+                selectedIds.clear(); lastSelIdx = -1;
+                updateGalleryTitle();
+                renderGalleryTabs();
+                renderGallery();
+            };
+            tabs.appendChild(pill);
+        });
+    }
+
+    function renderGallery() {
+        const gallery = document.getElementById('gallery');
+        gallery.innerHTML = '';
+        gallery.classList.toggle('selecting', selectMode);
+        const filtered = getVisibleImages();
+        if (filtered.length === 0) {
+            gallery.innerHTML = '<div class="empty-state">No photos found.</div>';
+            updateSelectBar();
+            return;
+        }
+        const canDrag = !selectMode && !activeTag;
+        filtered.forEach(img => {
+            const div = document.createElement('div');
+            div.className = 'item' + (selectedIds.has(img.id) ? ' selected' : '');
+            div.dataset.id = img.id;
+            div.draggable = canDrag;
+            div.onclick = e => {
+                if (suppressClick) { suppressClick = false; return; }
+                if (selectMode) handleItemSelect(img.id, e);
+                else openViewer(img);
+            };
+            div.ondragstart = handleDragStart;
+            div.ondragover = handleDragOver;
+            div.ondragenter = handleDragEnter;
+            div.ondragleave = handleDragLeave;
+            div.ondrop = handleDrop;
+            attachLongPress(div, img.id);
+            div.innerHTML = `<img src="${img.thumbDataUrl || img.dataUrl}" loading="lazy"><div class="sel-mark">✓</div>`;
+            gallery.appendChild(div);
+        });
+        updateSelectBar();
+    }
+
+    let dragSrcEl = null;
+    function handleDragStart(e) { dragSrcEl = this; e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', this.dataset.id); setTimeout(() => this.classList.add('dragging'), 0); }
+    function handleDragOver(e) { e.preventDefault(); return false; }
+    function handleDragEnter(e) { if (this !== dragSrcEl) this.classList.add('drag-over'); }
+    function handleDragLeave(e) { this.classList.remove('drag-over'); }
+    async function handleDrop(e) {
+        e.stopPropagation(); this.classList.remove('drag-over'); dragSrcEl.classList.remove('dragging');
+        if (dragSrcEl !== this) {
+            let viewList = getVisibleImages();
+            const fromIdx = viewList.findIndex(img => img.id === dragSrcEl.dataset.id);
+            const toIdx = viewList.findIndex(img => img.id === this.dataset.id);
+            const [movedItem] = viewList.splice(fromIdx, 1);
+            viewList.splice(toIdx, 0, movedItem);
+            const maxOrder = Date.now();
+            viewList.forEach((item, idx) => { item.order = maxOrder - idx; });
+            await bulkTx(s => viewList.forEach(item => s.put(item)));
+            await loadData();
+        }
+        return false;
+    }
+
+    // --- 合集重命名 ---
+    async function renameCollection() {
+        if (activeCollection === 'All' || activeTag) return;
+        const oldName = activeCollection;
+        let name = prompt(`把合集「${oldName}」改名为：`, oldName);
+        if (name === null) return;
+        name = name.trim();
+        if (!name || name === oldName) return;
+        if (/\s/.test(name)) return alert('合集名不能包含空格');
+        if (name === 'All') return alert('「All」是保留名称，请换一个');
+
+        const merging = existingCollections.has(name);
+        if (merging && !confirm(`「${name}」已存在，把「${oldName}」合并进去？`)) return;
+
+        const changed = allImages.filter(i => i.collections.includes(oldName));
+        changed.forEach(i => {
+            i.collections = [...new Set(i.collections.map(c => c === oldName ? name : c))];
+        });
+        await bulkTx(s => changed.forEach(i => s.put(i)));
+        activeCollection = name;
+        await loadData();
+    }
+
+    async function deleteCollection() {
+        if (activeCollection === 'All') return;
+        if (confirm(`把合集「${activeCollection}」从所有照片上移除？照片本身不会被删除。`)) {
+            const changed = allImages.filter(img => img.collections.includes(activeCollection));
+            changed.forEach(img => {
+                img.collections = img.collections.filter(c => c !== activeCollection);
+                if (img.collections.length === 0) img.collections = ['Uncategorized'];
+            });
+            await bulkTx(s => changed.forEach(img => s.put(img)));
+            activeCollection = 'All';
+            await loadData();
+        }
+    }
+
+    let viewerList = [];
+    function openViewer(img, list) {
+        currentImg = img;
+        if (window.resetViewerZoom) window.resetViewerZoom();
+        viewerList = list || getVisibleImages();
+        const idx = viewerList.findIndex(i => i.id === img.id);
+        document.querySelector('.viewer-nav.prev').classList.toggle('disabled', idx <= 0);
+        document.querySelector('.viewer-nav.next').classList.toggle('disabled', idx >= viewerList.length - 1);
+
+        document.getElementById('v-img').src = img.dataUrl;
+        document.getElementById('v-title').innerText = img.collections.join(', ').toUpperCase();
+        document.getElementById('v-desc').innerText = img.desc || '';
+        const tagsDiv = document.getElementById('v-tags');
+        tagsDiv.innerHTML = '';
+        if (img.tags && img.tags.length > 0) img.tags.forEach(t => tagsDiv.innerHTML += `<span class="v-tag">#${escapeHtml(t)}</span>`);
+        document.getElementById('v-download').href = img.dataUrl;
+
+        const boundArea = document.getElementById('v-bound');
+        const boundThumb = document.getElementById('v-bound-thumb');
+        if (img.boundId) {
+            const partner = allImages.find(p => p.id === img.boundId);
+            if (partner) { boundThumb.innerHTML = `<img src="${partner.thumbDataUrl || partner.dataUrl}">`; boundArea.style.display = 'flex'; }
+            else { boundArea.style.display = 'none'; }
+        } else { boundArea.style.display = 'none'; }
+
+        document.getElementById('viewer').classList.add('active');
+    }
+    function closeViewer() { document.getElementById('viewer').classList.remove('active'); currentImg = null; }
+
+    function navViewer(direction) {
+        if (!currentImg || viewerList.length === 0) return;
+        const idx = viewerList.findIndex(img => img.id === currentImg.id);
+        const newIdx = idx + direction;
+        if (newIdx < 0 || newIdx >= viewerList.length) return;
+        openViewer(viewerList[newIdx], viewerList);
+    }
+
+    // --- 触摸缩放逻辑 ---
+    document.addEventListener('DOMContentLoaded', () => {
+        const container = document.getElementById('v-container');
+        const img = document.getElementById('v-img');
+        const resetBtn = document.getElementById('v-reset-btn');
+        if (!container || !img) return;
+
+        let touchStartX = 0, touchStartY = 0;
+        let startDist = 0;
+        let isZooming = false;
+        let currentScale = 1;
+        let isDragging = false;
+        let currentX = 0, currentY = 0;
+        let startX = 0, startY = 0;
+
+        img.style.transformOrigin = 'center center';
+        img.style.transition = 'transform 0.1s ease-out';
+
+        const getDist = (t1, t2) => Math.hypot(t1.pageX - t2.pageX, t1.pageY - t2.pageY);
+
+        const updateResetBtn = () => {
+            if (currentScale > 1 || currentX !== 0 || currentY !== 0) {
+                resetBtn.style.opacity = '1';
+                resetBtn.style.pointerEvents = 'auto';
+            } else {
+                resetBtn.style.opacity = '0';
+                resetBtn.style.pointerEvents = 'none';
+            }
+        };
+
+        window.resetViewerZoom = () => {
+            currentScale = 1; currentX = 0; currentY = 0;
+            img.style.transform = 'translate(0px, 0px) scale(1)';
+            updateResetBtn();
+        };
+
+        if (resetBtn) resetBtn.addEventListener('click', window.resetViewerZoom);
+
+        container.addEventListener('touchstart', e => {
+            if (e.touches.length === 1) {
+                touchStartX = e.touches[0].screenX;
+                touchStartY = e.touches[0].screenY;
+                if (currentScale > 1) {
+                    isDragging = true;
+                    startX = e.touches[0].clientX - currentX;
+                    startY = e.touches[0].clientY - currentY;
+                } else {
+                    isDragging = false;
+                }
+            } else if (e.touches.length === 2) {
+                e.preventDefault();
+                isZooming = true;
+                startDist = getDist(e.touches[0], e.touches[1]);
+            }
+        }, { passive: false });
+
+        container.addEventListener('touchmove', e => {
+            if (isZooming && e.touches.length === 2) {
+                e.preventDefault();
+                const newDist = getDist(e.touches[0], e.touches[1]);
+                const scale = Math.max(1, currentScale * (newDist / startDist));
+                img.style.transform = `translate(${currentX}px, ${currentY}px) scale(${scale})`;
+            } else if (isDragging && currentScale > 1 && e.touches.length === 1) {
+                e.preventDefault();
+                currentX = e.touches[0].clientX - startX;
+                currentY = e.touches[0].clientY - startY;
+                img.style.transform = `translate(${currentX}px, ${currentY}px) scale(${currentScale})`;
+            }
+        }, { passive: false });
+
+        container.addEventListener('touchend', e => {
+            if (!isZooming && !isDragging && e.changedTouches.length === 1 && currentScale === 1) {
+                const touchEndX = e.changedTouches[0].screenX;
+                const diff = touchEndX - touchStartX;
+                if (Math.abs(diff) > 50) navViewer(diff > 0 ? -1 : 1);
+            }
+            if (isZooming) {
+                const scaleMatch = img.style.transform.match(/scale\(([^)]+)\)/);
+                currentScale = scaleMatch ? parseFloat(scaleMatch[1]) : 1;
+            }
+            isZooming = false;
+            isDragging = false;
+            updateResetBtn();
+        });
+
+        let lastTap = 0;
+        container.addEventListener('click', e => {
+            const now = Date.now();
+            if (now - lastTap < 300) {
+                if (currentScale > 1) {
+                    window.resetViewerZoom();
+                } else {
+                    currentScale = 2; currentX = 0; currentY = 0;
+                    img.style.transform = 'translate(0px, 0px) scale(2)';
+                    updateResetBtn();
+                }
+            }
+            lastTap = now;
+        });
+    });
+
+    document.addEventListener('keydown', e => {
+        if (!document.getElementById('viewer').classList.contains('active')) return;
+        if (e.key === 'ArrowLeft') navViewer(-1);
+        if (e.key === 'ArrowRight') navViewer(1);
+        if (e.key === 'Escape') closeViewer();
+    });
+
+    async function deleteImage() {
+        if (confirm('Delete this photo permanently?')) {
+            await dbOp(STORE_MEDIA, 'readwrite', s => s.delete(currentImg.id));
+            closeViewer(); loadData();
+        }
+    }
+
+    function openImageForm(isEdit = false) {
+        const modal = document.getElementById('image-modal');
+        const preview = document.getElementById('upload-preview');
+        const txt = document.getElementById('upload-txt');
+        fileQueue = []; fileQueueThumbs = []; fileQueueMeta = []; selectedBatchIdx.clear();
+        renderBatchPreview();
+        if (isEdit && currentImg) {
+            document.getElementById('img-form-title').innerText = 'Edit Info';
+            document.getElementById('f-desc').value = currentImg.desc || '';
+            document.getElementById('f-collections').value = currentImg.collections.join(' ');
+            document.getElementById('f-tags').value = currentImg.tags ? currentImg.tags.join(' ') : '';
+            tempBase64 = currentImg.dataUrl;
+            preview.src = currentImg.thumbDataUrl || tempBase64; preview.style.display = 'block'; txt.style.display = 'none';
+            document.getElementById('upload-box').style.pointerEvents = 'none';
+        } else {
+            currentImg = null;
+            document.getElementById('img-form-title').innerText = 'New Photo';
+            document.getElementById('f-desc').value = '';
+            document.getElementById('f-collections').value = (activeCollection !== 'All' && !activeTag) ? activeCollection : '';
+            document.getElementById('f-tags').value = activeTag ? activeTag : '';
+            tempBase64 = ''; preview.src = ''; preview.style.display = 'none'; txt.style.display = 'block';
+            document.getElementById('file-input').value = ''; document.getElementById('upload-box').style.pointerEvents = 'auto';
+        }
+        renderSuggestionChips('collections'); renderSuggestionChips('tags');
+        modal.classList.add('active');
+    }
+
+    function renderSuggestionChips(type, inputId = `f-${type}`, containerId = `suggest-${type}`) {
+        const container = document.getElementById(containerId); container.innerHTML = '';
+        const inputEl = document.getElementById(inputId);
+        const dataSet = type === 'collections' ? existingCollections : existingTags;
+        if (dataSet.size === 0) { container.style.display = 'none'; return; }
+        container.style.display = 'flex';
+        dataSet.forEach(val => {
+            const chip = document.createElement('div'); chip.className = 'chip'; chip.innerText = type === 'tags' ? `#${val}` : val;
+            chip.onclick = () => {
+                const currentVals = inputEl.value.trim().split(/\s+/).filter(v => v);
+                if (!currentVals.includes(val)) { currentVals.push(val); inputEl.value = currentVals.join(' ') + ' '; }
+            };
+            container.appendChild(chip);
+        });
+    }
+
+    // --- 批量上传 ---
+    let fileQueueThumbs = [];
+    let fileQueueMeta = [];
+    let selectedBatchIdx = new Set();
+
+    function parseColsTags(cInput, tInput) {
+        return {
+            cols: cInput ? [...new Set(cInput.split(/\s+/).map(c => c.trim()).filter(Boolean))] : [],
+            tags: tInput ? [...new Set(tInput.split(/\s+/).map(t => t.replace(/^#/, '').trim()).filter(Boolean))] : []
+        };
+    }
+
+    function renderBatchPreview() {
+        const wrap = document.getElementById('batch-preview');
+        const toolbar = document.getElementById('batch-toolbar');
+        wrap.innerHTML = '';
+        const count = fileQueue.filter(Boolean).length;
+        if (count === 0) { wrap.style.display = 'none'; toolbar.style.display = 'none'; return; }
+        wrap.style.display = 'flex';
+        toolbar.style.display = count > 1 ? 'flex' : 'none';
+
+        fileQueue.forEach((b64, i) => {
+            if (!b64) return;
+            const div = document.createElement('div');
+            div.className = 'batch-thumb'
+                + (selectedBatchIdx.has(i) ? ' selected' : '')
+                + (fileQueueMeta[i] ? ' customized' : '');
+            div.innerHTML = `<img src="${fileQueueThumbs[i] || b64}"><div class="check">✓</div><div class="custom-dot">单独</div>`;
+            div.onclick = () => {
+                if (selectedBatchIdx.has(i)) selectedBatchIdx.delete(i); else selectedBatchIdx.add(i);
+                renderBatchPreview();
+            };
+            wrap.appendChild(div);
+        });
+        updateBatchHint();
+    }
+
+    function updateBatchHint() {
+        const n = selectedBatchIdx.size;
+        const customized = fileQueueMeta.filter(Boolean).length;
+        document.getElementById('batch-hint').innerText = n > 0
+            ? `已选 ${n} 张`
+            : (customized > 0 ? `${customized} 张已单独设置` : '点选缩略图可单独设置');
+    }
+
+    function selectAllBatch() {
+        fileQueue.forEach((b, i) => { if (b) selectedBatchIdx.add(i); });
+        renderBatchPreview();
+    }
+
+    function clearBatchSelection() { selectedBatchIdx.clear(); renderBatchPreview(); }
+
+    function openPerItemForm() {
+        if (selectedBatchIdx.size === 0) return alert('请先点选要单独设置的图片');
+        const idxs = [...selectedBatchIdx].sort((a, b) => a - b);
+        document.getElementById('bi-title').innerText = `单独设置 ${idxs.length} 张`;
+        document.getElementById('bi-thumbs').innerHTML = idxs
+            .map(i => `<div class="batch-thumb" style="cursor:default;"><img src="${fileQueueThumbs[i] || fileQueue[i]}"></div>`)
+            .join('');
+
+        const base = fileQueueMeta[idxs[0]];
+        document.getElementById('bi-desc').value = base ? (base.desc || '') : '';
+        document.getElementById('bi-collections').value = base ? base.collections.join(' ') : '';
+        document.getElementById('bi-tags').value = base ? base.tags.join(' ') : '';
+
+        renderSuggestionChips('collections', 'bi-collections', 'suggest-bi-collections');
+        renderSuggestionChips('tags', 'bi-tags', 'suggest-bi-tags');
+        document.getElementById('batch-item-modal').classList.add('active');
+    }
+
+    function applyPerItemMeta() {
+        const desc = document.getElementById('bi-desc').value.trim();
+        const { cols, tags } = parseColsTags(
+            document.getElementById('bi-collections').value.trim(),
+            document.getElementById('bi-tags').value.trim()
+        );
+        if (!desc && cols.length === 0 && tags.length === 0) return clearPerItemMeta();
+        selectedBatchIdx.forEach(i => { fileQueueMeta[i] = { desc, collections: cols, tags }; });
+        selectedBatchIdx.clear();
+        closeModal('batch-item-modal');
+        renderBatchPreview();
+    }
+
+    function clearPerItemMeta() {
+        selectedBatchIdx.forEach(i => { fileQueueMeta[i] = null; });
+        selectedBatchIdx.clear();
+        closeModal('batch-item-modal');
+        renderBatchPreview();
+    }
+
+    function handleFile(e) {
+        const files = Array.from(e.target.files); if (!files.length) return;
+        fileQueue = []; fileQueueThumbs = []; fileQueueMeta = []; selectedBatchIdx.clear();
+        renderBatchPreview();
+
+        files.forEach((file, i) => {
+            const reader = new FileReader();
+            reader.onload = ev => {
+                const img = new Image();
+                img.onload = async () => {
+                    const cvs = document.createElement('canvas'); const ctx = cvs.getContext('2d');
+                    let w = img.width, h = img.height;
+                    if (w > 1200 || h > 1200) { if (w > h) { h *= 1200 / w; w = 1200; } else { w *= 1200 / h; h = 1200; } }
+                    cvs.width = w; cvs.height = h; ctx.drawImage(img, 0, 0, w, h);
+                    const b64 = cvs.toDataURL('image/jpeg', 0.85);
+                    fileQueue[i] = b64;
+                    fileQueueMeta[i] = null;
+                    fileQueueThumbs[i] = await generateThumbnail(b64);
+                    if (i === 0) {
+                        tempBase64 = b64;
+                        const p = document.getElementById('upload-preview');
+                        p.src = fileQueueThumbs[i]; p.style.display = 'block';
+                        document.getElementById('upload-txt').style.display = 'none';
+                    }
+                    renderBatchPreview();
+                };
+                img.src = ev.target.result;
+            };
+            reader.readAsDataURL(file);
+        });
+    }
+
+    async function submitImageForm() {
+        if (currentImg) {
+            if (!tempBase64) return alert("Please select an image.");
+            const def = parseColsTags(
+                document.getElementById('f-collections').value.trim(),
+                document.getElementById('f-tags').value.trim()
+            );
+            const newData = {
+                id: currentImg.id, dataUrl: tempBase64,
+                thumbDataUrl: currentImg.thumbDataUrl || await generateThumbnail(tempBase64),
+                desc: document.getElementById('f-desc').value.trim(),
+                collections: def.cols.length ? def.cols : ['Uncategorized'],
+                tags: def.tags,
+                time: currentImg.time, order: currentImg.order, boundId: currentImg.boundId || null
+            };
+            await dbOp(STORE_MEDIA, 'readwrite', s => s.put(newData));
+            closeModal('image-modal'); openViewer(newData); loadData(); return;
+        }
+
+        const defDesc = document.getElementById('f-desc').value.trim();
+        const def = parseColsTags(
+            document.getElementById('f-collections').value.trim(),
+            document.getElementById('f-tags').value.trim()
+        );
+
+        const entries = [];
+        fileQueue.forEach((b64, i) => { if (b64) entries.push({ b64, i }); });
+        if (entries.length === 0 && tempBase64) entries.push({ b64: tempBase64, i: 0 });
+        if (entries.length === 0) return alert("Please select an image.");
+
+        const baseTime = Date.now();
+        const saves = entries.map(async ({ b64, i }, n) => {
+            const meta = fileQueueMeta[i];
+            const cols = (meta && meta.collections.length) ? meta.collections
+                       : (def.cols.length ? def.cols : ['Uncategorized']);
+            const tags = (meta && meta.tags.length) ? meta.tags : def.tags;
+            const desc = (meta && meta.desc) ? meta.desc : defDesc;
+            const thumb = fileQueueThumbs[i] || await generateThumbnail(b64);
+            return dbOp(STORE_MEDIA, 'readwrite', s => s.put({
+                id: (baseTime + n).toString(), dataUrl: b64, thumbDataUrl: thumb,
+                desc, collections: cols, tags,
+                time: baseTime + n, order: baseTime + n, boundId: null
+            }));
+        });
+        await Promise.all(saves);
+        fileQueue = []; fileQueueThumbs = []; fileQueueMeta = []; selectedBatchIdx.clear();
+        renderBatchPreview();
+        closeModal('image-modal'); loadData();
+    }
+
+    function toggleSidebar(show) {
+        document.getElementById('sidebar').classList.toggle('active', show);
+        document.getElementById('s-overlay').classList.toggle('active', show);
+        if (show) renderSidebarTags();
+    }
+
+    function renderSidebarTags() {
+        const input = document.getElementById('tag-search-input'); if (input) input.value = ''; filterSidebarTags('');
+    }
+
+    function filterSidebarTags(query) {
+        const container = document.getElementById('sidebar-tags'); container.innerHTML = '';
+        const q = query.trim().toLowerCase().replace(/^#/, '');
+
+        const tagCount = {};
+        allImages.forEach(img => {
+            if (img.tags) img.tags.forEach(t => {
+                const clean = t.replace(/^#/, '').trim();
+                if (clean) tagCount[clean] = (tagCount[clean] || 0) + 1;
+            });
+        });
+
+        const allTagNames = Object.keys(tagCount).sort();
+
+        if (allTagNames.length === 0) {
+            container.innerHTML = '<div style="color:var(--text-sub);font-size:13px;">暂无标签，上传图片时添加吧</div>';
+            return;
+        }
+
+        const filtered = q ? allTagNames.filter(t => t.toLowerCase().includes(q)) : allTagNames;
+
+        if (filtered.length === 0) {
+            container.innerHTML = '<div style="color:var(--text-sub);font-size:13px;">没有匹配的标签</div>';
+            return;
+        }
+
+        filtered.forEach(t => {
+            const span = document.createElement('span');
+            span.className = 's-tag';
+            span.innerText = `#${t} (${tagCount[t]})`;
+            if (t === activeTag) span.classList.add('active');
+            span.onclick = () => {
+                activeTag = activeTag === t ? null : t;
+                activeCollection = 'All';
+                selectedIds.clear(); lastSelIdx = -1;
+                if (currentMode !== 'gallery') switchView('gallery');
+                updateGalleryTitle();
+                renderGalleryTabs();
+                renderGallery();
+                toggleSidebar(false);
+            };
+            container.appendChild(span);
+        });
+    }
+
+    function openBindPicker() {
+        if (!currentImg) return;
+        const grid = document.getElementById('bind-picker-grid'); grid.innerHTML = '';
+        allImages.filter(img => img.id !== currentImg.id).forEach(img => {
+            const div = document.createElement('div'); div.className = 'bind-picker-item';
+            if (img.id === currentImg.boundId) div.style.borderColor = '#fff';
+            div.innerHTML = `<img src="${img.thumbDataUrl || img.dataUrl}" loading="lazy">`;
+            div.onclick = () => bindImages(img.id); grid.appendChild(div);
+        });
+        document.getElementById('bind-picker').classList.add('active');
+    }
+
+    function closeBindPicker() { document.getElementById('bind-picker').classList.remove('active'); }
+
+    async function bindImages(targetId) {
+        const a = currentImg; const b = allImages.find(img => img.id === targetId);
+        if (!a || !b) return;
+        a.boundId = targetId; b.boundId = a.id;
+        await bulkTx(s => { s.put(a); s.put(b); });
+        closeBindPicker(); await loadData();
+        const updated = allImages.find(img => img.id === a.id); if (updated) openViewer(updated);
+    }
+
+    async function unbindCurrent() {
+        if (!currentImg || !currentImg.boundId) return;
+        const partner = allImages.find(img => img.id === currentImg.boundId);
+        const self = currentImg;
+        self.boundId = null;
+        if (partner) partner.boundId = null;
+        await bulkTx(s => { s.put(self); if (partner) s.put(partner); });
+        await loadData();
+        const updated = allImages.find(img => img.id === self.id); if (updated) openViewer(updated);
+    }
+
+    function switchToBound() {
+        if (!currentImg || !currentImg.boundId) return;
+        const partner = allImages.find(img => img.id === currentImg.boundId);
+        if (partner) openViewer(partner);
+    }
+
+    function closeModal(id) { document.getElementById(id).classList.remove('active'); }
+    function closeOnBg(e, id) { if (e.target.classList.contains('modal-overlay')) closeModal(id); }
+
+    function openJournalTagsModal() {
+        const container = document.getElementById('journal-modal-tags-container');
+        container.innerHTML = '';
+
+        const allJournalTags = new Set();
+        allJournals.forEach(j => {
+            if (j.tags) j.tags.forEach(t => allJournalTags.add(t));
+        });
+
+        if (allJournalTags.size === 0) {
+            container.innerHTML = '<div style="color:var(--text-sub);font-size:13px;">暂无标签，写文时添加吧</div>';
+        } else {
+            allJournalTags.forEach(tag => {
+                const span = document.createElement('span');
+                span.className = 's-tag';
+                span.innerText = `#${tag}`;
+                if (activeJournalTab === tag) span.classList.add('active');
+                span.onclick = () => {
+                    switchJournalTab(tag, true);
+                    closeModal('journal-tag-modal');
+                };
+                container.appendChild(span);
+            });
+        }
+        document.getElementById('journal-tag-modal').classList.add('active');
+    }
+    
+        // ==========================================
+    // 设置与多图库 / 导入导出 逻辑区
+    // ==========================================
+
+    function openSettings() {
+        toggleSidebar(false);
+        document.getElementById('current-lib-name').innerText = currentLibrary;
+        
+        // 渲染图库下拉列表
+        const libSelect = document.getElementById('lib-switch-select');
+        libSelect.innerHTML = libraryList.map(l => `<option value="${l}" ${l === currentLibrary ? 'selected' : ''}>${l}</option>`).join('');
+        
+        // 渲染导出合集下拉列表
+        const colSelect = document.getElementById('export-col-select');
+        const cArray = Array.from(existingCollections).sort();
+        colSelect.innerHTML = cArray.length > 0 
+            ? cArray.map(c => `<option value="${c}">${c}</option>`).join('')
+            : '<option value="">无合集</option>';
+
+        document.getElementById('settings-modal').classList.add('active');
+    }
+
+    function closeSettings() {
+        document.getElementById('settings-modal').classList.remove('active');
+    }
+
+    // 切换图库
+    async function switchLibrary(libName) {
+        if (libName === currentLibrary) return;
+        currentLibrary = libName;
+        localStorage.setItem('current_library', libName);
+        activeCollection = 'All'; 
+        activeTag = null;
+        selectedIds.clear();
+        await initDB();
+        await loadData();
+        openSettings(); // 刷新界面
+    }
+
+    // 新建图库
+    async function createNewLibrary() {
+        let name = prompt('给新图库起个名字（例如：工作、私密）：');
+        if (!name) return;
+        name = name.trim();
+        if (!name || libraryList.includes(name)) return alert('名字为空或已存在');
+        
+        libraryList.push(name);
+        localStorage.setItem('library_list', JSON.stringify(libraryList));
+        await switchLibrary(name);
+    }
+
+    // 删除当前图库
+    async function deleteCurrentLibrary() {
+        if (libraryList.length === 1) return alert('这是最后一个图库，不能删除。你可以清空内容，或者新建一个再删。');
+        if (!confirm(`警告：这将永久删除图库「${currentLibrary}」中的所有照片和文字，且不可恢复！\n\n确定要删除吗？`)) return;
+
+        indexedDB.deleteDatabase(currentLibrary); // 删库跑路
+        
+        libraryList = libraryList.filter(l => l !== currentLibrary);
+        localStorage.setItem('library_list', JSON.stringify(libraryList));
+        
+        await switchLibrary(libraryList[0]);
+    }
+
+    // 导出数据
+    async function exportData(mode) {
+        let exportImages = [];
+        let exportJournals = [];
+        let filename = '';
+
+        if (mode === 'all') {
+            exportImages = allImages;
+            exportJournals = allJournals;
+            filename = `ArchiveBackup_${currentLibrary}_${new Date().toLocaleDateString().replace(/\//g, '')}.json`;
+        } else if (mode === 'collection') {
+            const colName = document.getElementById('export-col-select').value;
+            if (!colName) return alert('当前没有合集可导出');
+            exportImages = allImages.filter(img => img.collections.includes(colName));
+            // 合集导出不包含文字
+            filename = `Collection_${colName}_${new Date().toLocaleDateString().replace(/\//g, '')}.json`;
+        }
+
+        const data = {
+            library: currentLibrary,
+            exportMode: mode,
+            timestamp: Date.now(),
+            media: exportImages,
+            journal: exportJournals
+        };
+
+        const blob = new Blob([JSON.stringify(data)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        a.click();
+        URL.revokeObjectURL(url);
+    }
+
+    // 导入数据
+    function importData(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+        
+        const reader = new FileReader();
+        reader.onload = async (e) => {
+            try {
+                const data = JSON.parse(e.target.result);
+                if (!data.media && !data.journal) throw new Error('无效的备份文件');
+
+                const msg = `准备导入：\n${data.media?.length || 0} 张照片\n${data.journal?.length || 0} 篇文字\n\n将合并到当前图库「${currentLibrary}」中，遇到相同 ID 会覆盖。确定继续吗？`;
+                if (!confirm(msg)) {
+                    event.target.value = '';
+                    return;
+                }
+
+                // 批量合并
+                await bulkTx(s => {
+                    if (data.media) data.media.forEach(img => s.put(img));
+                });
+                
+                // 文字用另一个单独事务
+                const txJ = db.transaction([STORE_JOURNAL], 'readwrite');
+                const storeJ = txJ.objectStore(STORE_JOURNAL);
+                if (data.journal) data.journal.forEach(j => storeJ.put(j));
+                
+                txJ.oncomplete = async () => {
+                    alert('导入成功！');
+                    event.target.value = '';
+                    await loadData();
+                    closeSettings();
+                };
+
+            } catch (err) {
+                alert('导入失败：文件格式损坏或不是 Archive 的备份文件。');
+                console.error(err);
+            }
+            event.target.value = '';
+        };
+        reader.readAsText(file);
+    }
+        // 注册 Service Worker，让 App 可以离线运行
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register('./sw.js').catch(err => {
+                console.log('SW 注册失败:', err);
+            });
+        });
+    }
+</script>
+</body>
+</html>
